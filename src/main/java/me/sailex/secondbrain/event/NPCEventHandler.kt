@@ -3,17 +3,18 @@ package me.sailex.secondbrain.event
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParseException
 import me.sailex.altoclef.AltoClefController
-import me.sailex.altoclef.tasks.LookAtOwnerTask
 import me.sailex.secondbrain.config.NPCConfig
 import me.sailex.secondbrain.constant.Instructions
 import me.sailex.secondbrain.context.ContextProvider
 import me.sailex.secondbrain.history.ConversationHistory
 import me.sailex.secondbrain.history.Message
 import me.sailex.secondbrain.llm.LLMClient
+import me.sailex.secondbrain.llm.openai.OpenAiClient
 import me.sailex.secondbrain.llm.player2.Player2APIClient
 import me.sailex.secondbrain.llm.roles.Player2ChatRole
 import me.sailex.secondbrain.util.LogUtil
 import me.sailex.secondbrain.util.PromptFormatter
+import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ThreadPoolExecutor
@@ -48,7 +49,9 @@ class NPCEventHandler(
         CompletableFuture.runAsync({
             LogUtil.info("onEvent: $prompt")
 
-            val formattedPrompt: String = PromptFormatter.format(prompt,contextProvider.buildContext())
+            val worldContext = contextProvider.buildContext()
+            val zoneAwarePrompt = applyZoneSpecificBehaviour(prompt, worldContext.state().position())
+            val formattedPrompt: String = PromptFormatter.format(zoneAwarePrompt, worldContext)
 
             history.add(Message(formattedPrompt, Player2ChatRole.USER.toString().lowercase()))
             val response = llmClient.chat(history.latestConversations)
@@ -62,10 +65,20 @@ class NPCEventHandler(
 
             //prevent printing multiple times the same when llm is running in command syntax errors
             if (parsedMessage.message != history.getLastMessage()) {
-                if (llmClient is Player2APIClient && config.isTTS) {
-                    llmClient.startTextToSpeech(parsedMessage.message)
-                } else {
-                    controller.controllerExtras.chat(parsedMessage.message)
+                // Always send text chat; TTS is additional output when enabled.
+                controller.controllerExtras.chat(parsedMessage.message)
+                if (!config.isTTS) return@runAsync
+
+                when (llmClient) {
+                    is Player2APIClient -> llmClient.startTextToSpeech(parsedMessage.message)
+                    is OpenAiClient -> {
+                        try {
+                            llmClient.startTextToSpeech(parsedMessage.message)
+                        } catch (e: Exception) {
+                            LogUtil.error("OpenAI TTS failed", e)
+                        }
+                    }
+                    else -> {}
                 }
             }
         }, executorService)
@@ -108,13 +121,15 @@ class NPCEventHandler(
     fun execute(command: String): Boolean {
         var successful = true
         val cmdExecutor = controller.commandExecutor
-        val commandWithPrefix = if (cmdExecutor.isClientCommand(command)) {
-            command
+        val normalized = command.lowercase()
+        val blocked = listOf("attack", "kill", "break", "place", "mine", "punch", "destroy")
+        val safeCommand = if (blocked.any { normalized.contains(it) }) "idle" else command
+        val commandWithPrefix = if (cmdExecutor.isClientCommand(safeCommand)) {
+            safeCommand
         } else {
-            cmdExecutor.commandPrefix + command
+            cmdExecutor.commandPrefix + safeCommand
         }
         cmdExecutor.execute(commandWithPrefix, {
-            controller.runUserTask(LookAtOwnerTask())
 //            if (queueIsEmpty()) {
 //                //this.onEvent(Instructions.COMMAND_FINISHED_PROMPT.format(commandWithPrefix))
 //            }
@@ -131,13 +146,27 @@ class NPCEventHandler(
         val message: String
     )
 
-    private fun buildErrorMessage(exception: Throwable): String? {
-        val chain = generateSequence(exception) { it.cause }
+    private fun buildErrorMessage(exception: Throwable): String {
+        val chain = generateSequence(exception) { it.cause }.toList()
         val custom = chain.filterIsInstance<CustomEventException>().firstOrNull()
-        if (custom != null) {
-            return custom.message
-        }
-        return generateSequence(exception) { it.cause }.last().message
+        if (custom != null) return custom.message ?: "Custom event error"
+        val meaningful = chain.firstOrNull { !it.message.isNullOrBlank() && it.message!!.trim() != "ERROR :" }
+        if (meaningful != null) return meaningful.message!!
+        return "LLM request failed: provider returned a non-2xx response with an empty error body. Check base URL, model, and API key."
+    }
+
+    private fun applyZoneSpecificBehaviour(prompt: String, position: BlockPos): String {
+        val matchingZone = config.zoneBehaviors
+            .filter { it.instructions.isNotBlank() && it.contains(position) }
+            .maxByOrNull { it.priority }
+            ?: return prompt
+
+        return """
+            $prompt
+
+            Additional zone instructions (zone: ${matchingZone.name}, priority: ${matchingZone.priority}):
+            ${matchingZone.instructions}
+        """.trimIndent()
     }
 
 }

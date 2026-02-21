@@ -72,6 +72,7 @@ dependencies {
     include(modRuntimeOnly("io.github.sashirestela:slimvalidator:1.2.2")!!)
     include(modRuntimeOnly("io.github.sashirestela:cleverclient:1.4.4")!!)
     include(modImplementation("io.github.sashirestela:simple-openai:3.9.0")!!)
+    include(modImplementation("com.openai:openai-java:4.22.0")!!)
 
     include(modImplementation("org.apache.httpcomponents:httpcore:4.4")!!)
 

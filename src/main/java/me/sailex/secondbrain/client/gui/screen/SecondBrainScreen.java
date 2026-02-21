@@ -12,7 +12,6 @@ import io.wispforest.owo.ui.core.Surface;
 import me.sailex.secondbrain.client.networking.ClientNetworkManager;
 import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.config.NPCConfig;
-import me.sailex.secondbrain.llm.LLMType;
 import me.sailex.secondbrain.networking.packet.CreateNpcPacket;
 import me.sailex.secondbrain.networking.packet.DeleteNpcPacket;
 import net.minecraft.text.Text;
@@ -46,7 +45,7 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
         npcConfig.forEach(config -> addNpcComponent(panelComponent, config));
 
         rootComponent.childById(ButtonComponent.class, "add_npc").onPress(button ->
-            client.setScreen(new NPCConfigScreen(networkManager, new NPCConfig(), false))
+            client.setScreen(new NPCConfigScreen(networkManager, new NPCConfig(), false, npcConfig))
         );
 
         rootComponent.childById(ButtonComponent.class, "edit_base").onPress(button ->
@@ -99,11 +98,9 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
     }
 
     private void addNpcEditButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        if (!config.isActive() || config.getLlmType() == LLMType.PLAYER2) {
-            npcButtonContainer.child(Components.button(Text.of("Edit"), button ->
-                    client.setScreen(new NPCConfigScreen(networkManager, config, true))
-            ));
-        }
+        npcButtonContainer.child(Components.button(Text.of("Edit"), button ->
+                client.setScreen(new NPCConfigScreen(networkManager, config, true, npcConfig))
+        ));
     }
 
     private void addNpcDeleteButton(FlowLayout npcButtonContainer, NPCConfig config) {

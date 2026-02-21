@@ -2,6 +2,7 @@ package me.sailex.secondbrain.commands;
 
 import com.mojang.brigadier.context.CommandContext;
 import lombok.AllArgsConstructor;
+import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.config.ConfigProvider;
 import me.sailex.secondbrain.config.NPCConfig;
 import me.sailex.secondbrain.networking.NetworkHandler;
@@ -20,7 +21,7 @@ public class GuiCommand {
     public int execute(CommandContext<ServerCommandSource> context) {
         ServerPlayerEntity targetClient = context.getSource().getPlayer();
         if (targetClient != null) {
-            ConfigPacket packet = new ConfigPacket(configProvider.getBaseConfig(),
+            ConfigPacket packet = new ConfigPacket(BaseConfig.deepCopy(configProvider.getBaseConfig()),
                     configProvider.getNpcConfigs().stream().map(NPCConfig::deepCopy).collect(Collectors.toList()));
             packet.hideSecret();
             networkHandler.sendPacket(packet, targetClient);

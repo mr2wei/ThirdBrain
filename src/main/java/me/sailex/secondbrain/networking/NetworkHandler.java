@@ -68,7 +68,12 @@ public class NetworkHandler {
     private void registerUpdateBaseConfig() {
         CHANNEL.registerServerbound(UpdateBaseConfigPacket.class, (configPacket, serverAccess) -> {
             if (authorizer.isAuthorized(serverAccess)) {
-                configProvider.setBaseConfig(configPacket.baseConfig());
+                BaseConfig currentConfig = configProvider.getBaseConfig();
+                BaseConfig updatedConfig = configPacket.baseConfig();
+                if (updatedConfig.getOpenaiApiKey().isBlank()) {
+                    updatedConfig.setOpenaiApiKey(currentConfig.getOpenaiApiKey());
+                }
+                configProvider.setBaseConfig(updatedConfig);
                 LogUtil.info("Updated base config to: " + configPacket);
             }
         });
@@ -77,7 +82,22 @@ public class NetworkHandler {
     private void registerUpdateNpcConfig() {
         CHANNEL.registerServerbound(UpdateNpcConfigPacket.class, (configPacket, serverAccess) -> {
             if (authorizer.isAuthorized(serverAccess)) {
-                configProvider.updateNpcConfig(configPacket.npcConfig());
+                NPCConfig updatedConfig = configPacket.npcConfig();
+                UUID uuid = updatedConfig.getUuid();
+
+                var activeNpc = npcService.getUuidToNpc().get(uuid);
+                if (activeNpc != null) {
+                    var owner = activeNpc.getController().getOwner();
+                    var spawnPos = activeNpc.getEntity().getBlockPos();
+                    PlayerManager playerManager = EntityVer.getWorld(serverAccess.player()).getServer().getPlayerManager();
+
+                    npcService.removeNpc(uuid, playerManager);
+                    updatedConfig.setActive(true);
+                    configProvider.updateNpcConfig(updatedConfig);
+                    npcService.createNpc(updatedConfig, serverAccess.runtime(), spawnPos, owner);
+                } else {
+                    configProvider.updateNpcConfig(updatedConfig);
+                }
                 LogUtil.info("Updated npc config to: " + configPacket);
             }
         });

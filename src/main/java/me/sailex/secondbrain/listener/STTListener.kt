@@ -16,7 +16,7 @@ class STTListener(npcs: Map<UUID, NPC>) : AEventListener(npcs) {
             if (llmClient != null) {
                 performSTTAction(type, llmClient)
             } else {
-                LogUtil.errorInChat("No NPC found that uses Player2.")
+                LogUtil.info("STT action ignored: no NPC found that uses Player2.")
             }
         }
     }

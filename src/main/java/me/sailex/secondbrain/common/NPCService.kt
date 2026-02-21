@@ -105,8 +105,15 @@ class NPCService(
         if (config.isEmpty) {
             return configProvider.addNpcConfig(newConfig)
         } else {
-            config.get().isActive = true
-            return config.get()
+            val existing = config.get()
+            existing.isActive = true
+            existing.llmCharacter = newConfig.llmCharacter
+            existing.llmType = newConfig.llmType
+            existing.llmModel = newConfig.llmModel
+            existing.isTTS = newConfig.isTTS
+            existing.voiceId = newConfig.voiceId
+            existing.skinUrl = newConfig.skinUrl
+            return existing
         }
     }
 

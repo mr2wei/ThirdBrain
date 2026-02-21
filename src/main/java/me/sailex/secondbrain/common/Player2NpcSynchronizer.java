@@ -72,7 +72,7 @@ public class Player2NpcSynchronizer {
                 npcService.createNpc(config, server, spawnPos, owner);
             }
         } catch (Exception e) {
-            LogUtil.errorInChat(e.getMessage());
+            LogUtil.info("Player2 sync skipped: " + e.getMessage());
             LogUtil.error(e);
         }
     }
@@ -93,7 +93,7 @@ public class Player2NpcSynchronizer {
                 }
                 this.player2APIClient.getHealthStatus();
             } catch (LLMServiceException e) {
-                LogUtil.errorInChat(e.getMessage());
+                LogUtil.info("Player2 heartbeat skipped: " + e.getMessage());
                 LogUtil.error(e);
             }
         }, 0,1, TimeUnit.MINUTES);

@@ -3,6 +3,8 @@ package me.sailex.secondbrain.client.gui.screen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
 import io.wispforest.owo.ui.component.DiscreteSliderComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
+import io.wispforest.owo.ui.component.TextAreaComponent;
+import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
 import me.sailex.secondbrain.client.networking.ClientNetworkManager;
 import me.sailex.secondbrain.config.BaseConfig;
@@ -57,9 +59,29 @@ public class BaseConfigScreen extends ConfigScreen<BaseConfig> {
                 .checked(config.isVerbose())
                 .onChanged(listener -> config.setVerbose(!config.isVerbose()));
 
+        panel.childById(LabelComponent.class, "ollamaUrl-label").text(Text.of(BaseConfig.OLLAMA_URL_KEY));
+        panel.childById(TextAreaComponent.class, "ollamaUrl")
+                .text(config.getOllamaUrl())
+                .onChanged()
+                .subscribe(config::setOllamaUrl);
+
+        panel.childById(LabelComponent.class, "openaiBaseUrl-label").text(Text.of(BaseConfig.OPENAI_BASE_URL_KEY));
+        panel.childById(TextAreaComponent.class, "openaiBaseUrl")
+                .text(config.getOpenaiBaseUrl())
+                .onChanged()
+                .subscribe(config::setOpenaiBaseUrl);
+
+        panel.childById(LabelComponent.class, "openaiApiKey-label").text(Text.of(BaseConfig.OPENAI_API_KEY));
+        panel.childById(TextAreaComponent.class, "openaiApiKey")
+                .text(config.getOpenaiApiKey())
+                .onChanged()
+                .subscribe(config::setOpenaiApiKey);
+
         onPressSaveButton(panel, button -> {
             networkManager.sendPacket(new UpdateBaseConfigPacket(config));
             close();
         });
+
+        panel.childById(ButtonComponent.class, "cancel").onPress(button -> close());
     }
 }

@@ -1,6 +1,8 @@
 package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.component.*;
+import io.wispforest.owo.ui.container.CollapsibleContainer;
+import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 
 import io.wispforest.owo.ui.core.Insets;
@@ -13,19 +15,58 @@ import me.sailex.secondbrain.networking.packet.UpdateNpcConfigPacket;
 
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.IntConsumer;
 
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
 public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
 
     private static final Identifier ID = Identifier.of(MOD_ID, "npcconfig");
+    private static final int WIDE_INPUT_WIDTH = 42;
+    private static final int HALF_INPUT_WIDTH = 24;
+    private static final int SINGLE_LINE_INPUT_HEIGHT = 9;
+    private static final int CHARACTER_INPUT_HEIGHT = 30;
+    private static final int ZONE_INSTRUCTIONS_HEIGHT = 22;
+    private static final int INTEGER_INPUT_WIDTH = 38;
+    private static final List<SkinOption> SKIN_OPTIONS = List.of(
+            new SkinOption("Random", ""),
+            new SkinOption("Steve", "https://minecraft.wiki/Special:FilePath/Char.png"),
+            new SkinOption("Alex", "https://minecraft.wiki/Special:FilePath/Alex%20skin.png"),
+            new SkinOption("Ari", "https://minecraft.wiki/Special:FilePath/Ari%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Kai", "https://minecraft.wiki/Special:FilePath/Kai%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Noor", "https://minecraft.wiki/Special:FilePath/Noor%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Sunny", "https://minecraft.wiki/Special:FilePath/Sunny%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Zuri", "https://minecraft.wiki/Special:FilePath/Zuri%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Efe", "https://minecraft.wiki/Special:FilePath/Efe%20(classic%20texture)%20JE1.png"),
+            new SkinOption("Makena", "https://minecraft.wiki/Special:FilePath/Makena%20(classic%20texture)%20JE1.png")
+    );
+    private static final List<VoiceOption> OPENAI_VOICE_OPTIONS = List.of(
+            new VoiceOption("Alloy", "alloy"),
+            new VoiceOption("Ash", "ash"),
+            new VoiceOption("Ballad", "ballad"),
+            new VoiceOption("Coral", "coral"),
+            new VoiceOption("Echo", "echo"),
+            new VoiceOption("Sage", "sage"),
+            new VoiceOption("Shimmer", "shimmer"),
+            new VoiceOption("Verse", "verse"),
+            new VoiceOption("Marin", "marin"),
+            new VoiceOption("Cedar", "cedar")
+    );
+    private final List<NPCConfig> existingConfigs;
+    private final List<Boolean> zoneExpandedState = new ArrayList<>();
+    private FlowLayout zoneBehaviourSection;
 
     public NPCConfigScreen(
         ClientNetworkManager networkManager,
         NPCConfig npcConfig,
-        boolean isEdit
+        boolean isEdit,
+        List<NPCConfig> existingConfigs
     ) {
         super(networkManager, npcConfig, isEdit, ID);
+        this.existingConfigs = existingConfigs;
     }
 
     @Override
@@ -36,8 +77,9 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
         if (isEdit) {
             npcNameLabel.text(Text.of(NPCConfig.EDIT_NPC.formatted(config.getNpcName())));
         } else {
+            applyLastUsedDefaults(config.getLlmType());
             npcNameLabel.text(Text.of(NPCConfig.NPC_NAME));
-            TextAreaComponent npcName = Components.textArea(Sizing.fill(35), Sizing.fill(7))
+            TextAreaComponent npcName = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
                     .text(config.getNpcName());
             npcName.onChanged().subscribe(config::setNpcName);
             panel.childById(FlowLayout.class, "npcName").child(npcName);
@@ -58,77 +100,318 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
                 close();
             }
         });
+
+        rootComponent.childById(ButtonComponent.class, "cancel").onPress(button -> close());
     }
 
     private void drawLlmInfo(FlowLayout panel) {
         FlowLayout llmInfo = panel.childById(FlowLayout.class, "llmInfo");
         llmInfo.clearChildren();
+        llmInfo.gap(4);
 
-        //either show ollamaUrl or openai api key or isTTS checkbox
-        TextAreaComponent llmInfoTextArea = Components.textArea(Sizing.fill(35), Sizing.fill(7));
         switch (config.getLlmType()) {
-            case OLLAMA -> {
-                //ollama url
-                llmInfo.child(Components.label(Text.of(NPCConfig.OLLAMA_URL)).shadow(true));
-                llmInfoTextArea.text(config.getOllamaUrl())
-                        .onChanged()
-                        .subscribe(config::setOllamaUrl);
-                llmInfo.child(llmInfoTextArea);
-            }
+            case OLLAMA -> {}
             case PLAYER2 -> {
-                CheckboxComponent isTTS = Components.checkbox(Text.of(NPCConfig.IS_TTS))
-                        .checked(config.isTTS())
-                        .onChanged(listener -> config.setTTS(!config.isTTS()));
-                llmInfo.child(isTTS);
+                llmInfo.child(buildUseTtsCheckbox());
             }
-            case OPENAI -> {
-                llmInfo.child(Components.label(Text.of(NPCConfig.OPENAI_API_KEY)).shadow(true));
-                llmInfoTextArea.text(config.getOpenaiApiKey())
-                        .onChanged()
-                        .subscribe(config::setOpenaiApiKey);
-                llmInfo.child(llmInfoTextArea);
-            }
+            case OPENAI -> llmInfo.child(buildUseTtsCheckbox());
         }
         //system prompt
         llmInfo.child(Components.label(Text.of(NPCConfig.LLM_CHARACTER)).shadow(true).margins(Insets.top(7)));
-        TextAreaComponent llmCharacter = Components.textArea(Sizing.fill(35), Sizing.fill(25));
+        TextAreaComponent llmCharacter = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(CHARACTER_INPUT_HEIGHT));
         llmCharacter.text(config.getLlmCharacter())
                 .onChanged()
                 .subscribe(config::setLlmCharacter);
         llmInfo.child(llmCharacter);
+
+        drawZoneSpecificBehaviourEditor(panel, llmInfo);
+        drawSkinSelector(llmInfo);
+        if (config.getLlmType() == LLMType.OPENAI) {
+            drawOpenAiVoiceSelector(llmInfo);
+        }
+    }
+
+    private void drawZoneSpecificBehaviourEditor(FlowLayout panel, FlowLayout llmInfo) {
+        zoneBehaviourSection = Containers.verticalFlow(Sizing.content(), Sizing.content());
+        zoneBehaviourSection.gap(4);
+        llmInfo.child(zoneBehaviourSection);
+        renderZoneSpecificBehaviourSection(panel);
+    }
+
+    private CheckboxComponent buildUseTtsCheckbox() {
+        return Components.checkbox(Text.of("Use TTS"))
+                .checked(config.isTTS())
+                .onChanged(listener -> config.setTTS(!config.isTTS()));
+    }
+
+    private void renderZoneSpecificBehaviourSection(FlowLayout panel) {
+        if (zoneBehaviourSection == null) {
+            return;
+        }
+        zoneBehaviourSection.clearChildren();
+        zoneBehaviourSection.child(Components.label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
+
+        FlowLayout zoneList = Containers.verticalFlow(Sizing.content(), Sizing.content());
+        zoneList.gap(6);
+
+        List<NPCConfig.ZoneBehavior> zoneBehaviors = config.getZoneBehaviors();
+        syncZoneExpandedState(zoneBehaviors.size());
+        for (int i = 0; i < zoneBehaviors.size(); i++) {
+            zoneList.child(buildZoneCollapsible(panel, zoneBehaviors.get(i), i));
+        }
+        zoneBehaviourSection.child(zoneList);
+
+        zoneBehaviourSection.child(Components.button(Text.of(NPCConfig.ADD_ZONE), button -> {
+            int nextZoneNumber = config.getZoneBehaviors().size() + 1;
+            config.getZoneBehaviors().add(new NPCConfig.ZoneBehavior(
+                    "Zone " + nextZoneNumber,
+                    new NPCConfig.ZoneCoordinate(0, 0, 0),
+                    new NPCConfig.ZoneCoordinate(0, 0, 0),
+                    0,
+                    ""
+            ));
+            zoneExpandedState.add(true);
+            renderZoneSpecificBehaviourSection(panel);
+        }));
+    }
+
+    private CollapsibleContainer buildZoneCollapsible(FlowLayout panel, NPCConfig.ZoneBehavior zone, int zoneIndex) {
+        CollapsibleContainer collapsible = Containers.collapsible(
+                Sizing.fill(WIDE_INPUT_WIDTH),
+                Sizing.content(),
+                Text.of(buildZoneTitle(zone, zoneIndex)),
+                zoneExpandedState.get(zoneIndex)
+        );
+        collapsible.gap(4);
+        collapsible.onToggled().subscribe(nowExpanded -> zoneExpandedState.set(zoneIndex, nowExpanded));
+
+        FlowLayout zoneEditor = buildZoneEditor(panel, zone, zoneIndex);
+        collapsible.child(zoneEditor);
+        return collapsible;
+    }
+
+    private FlowLayout buildZoneEditor(FlowLayout panel, NPCConfig.ZoneBehavior zone, int zoneIndex) {
+        FlowLayout zoneEditor = Containers.verticalFlow(Sizing.content(), Sizing.content());
+        zoneEditor.gap(5);
+
+        zoneEditor.child(Components.label(Text.of("Name")).shadow(true));
+        TextAreaComponent zoneNameInput = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
+                .text(zone.getName());
+        zoneNameInput.onChanged().subscribe(zone::setName);
+        zoneEditor.child(zoneNameInput);
+
+        zoneEditor.child(Components.label(Text.of("Priority")).shadow(true));
+        zoneEditor.child(createIntegerInput(zone.getPriority(), zone::setPriority));
+
+        zoneEditor.child(Components.label(Text.of("From (x, y, z)")).shadow(true));
+        zoneEditor.child(createCoordinateEditor(zone.getFrom()));
+
+        zoneEditor.child(Components.label(Text.of("To (x, y, z)")).shadow(true));
+        zoneEditor.child(createCoordinateEditor(zone.getTo()));
+
+        zoneEditor.child(Components.label(Text.of("Extra Instructions")).shadow(true));
+        TextAreaComponent instructionsInput = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(ZONE_INSTRUCTIONS_HEIGHT))
+                .text(zone.getInstructions());
+        instructionsInput.onChanged().subscribe(zone::setInstructions);
+        zoneEditor.child(instructionsInput);
+
+        zoneEditor.child(Components.button(Text.of("Remove Zone"), button -> {
+            config.getZoneBehaviors().remove(zoneIndex);
+            zoneExpandedState.remove(zoneIndex);
+            renderZoneSpecificBehaviourSection(panel);
+        }));
+        return zoneEditor;
+    }
+
+    private String buildZoneTitle(NPCConfig.ZoneBehavior zone, int zoneIndex) {
+        int zoneNumber = zoneIndex + 1;
+        String displayName = zone.getName() == null || zone.getName().isBlank()
+                ? "Zone " + zoneNumber
+                : zone.getName();
+        return "Zone " + zoneNumber + " - " + displayName + " (Priority " + zone.getPriority() + ")";
+    }
+
+    private void syncZoneExpandedState(int zoneCount) {
+        while (zoneExpandedState.size() < zoneCount) {
+            zoneExpandedState.add(false);
+        }
+        while (zoneExpandedState.size() > zoneCount) {
+            zoneExpandedState.remove(zoneExpandedState.size() - 1);
+        }
+    }
+
+    private FlowLayout createCoordinateEditor(NPCConfig.ZoneCoordinate coordinate) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        row.gap(4);
+        row.child(Components.label(Text.of("x")).shadow(true));
+        row.child(createIntegerInput(coordinate.getX(), coordinate::setX));
+        row.child(Components.label(Text.of("y")).shadow(true));
+        row.child(createIntegerInput(coordinate.getY(), coordinate::setY));
+        row.child(Components.label(Text.of("z")).shadow(true));
+        row.child(createIntegerInput(coordinate.getZ(), coordinate::setZ));
+        return row;
+    }
+
+    private TextAreaComponent createIntegerInput(int currentValue, IntConsumer setter) {
+        TextAreaComponent input = Components.textArea(Sizing.fixed(INTEGER_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
+                .text(String.valueOf(currentValue));
+        input.onChanged().subscribe(value -> {
+            Integer parsed = parseInteger(value);
+            if (parsed != null) {
+                setter.accept(parsed);
+            }
+        });
+        return input;
+    }
+
+    private Integer parseInteger(String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private void drawLLMTypeDropDown(FlowLayout panel) {
         panel.childById(LabelComponent.class, "llmType-label").text(Text.of(NPCConfig.LLM_TYPE));
         DropdownComponent llmTypeDropDown = panel.childById(DropdownComponent.class, "llmType");
+        ((FlowLayout) llmTypeDropDown.children().get(0)).clearChildren();
         if (isEdit) {
             llmTypeDropDown.button(
                     Text.of(config.getLlmType().toString()), button -> {});
         } else {
-            llmTypeDropDown.button(
-                    Text.of(LLMType.OLLAMA.toString()),
+                llmTypeDropDown.button(
+                    Text.of((config.getLlmType() == LLMType.OLLAMA ? "[X] " : "[ ] ") + LLMType.OLLAMA),
                     button -> {
                         config.setLlmType(LLMType.OLLAMA);
+                        applyLastUsedDefaults(LLMType.OLLAMA);
+                        drawLLMTypeDropDown(panel);
+                        drawLLMModelInput(panel);
                         drawLlmInfo(panel);
                     });
             llmTypeDropDown.button(
-                    Text.of(LLMType.OPENAI.toString()),
+                    Text.of((config.getLlmType() == LLMType.OPENAI ? "[X] " : "[ ] ") + LLMType.OPENAI),
                     button -> {
                         config.setLlmType(LLMType.OPENAI);
+                        applyLastUsedDefaults(LLMType.OPENAI);
+                        drawLLMTypeDropDown(panel);
+                        drawLLMModelInput(panel);
                         drawLlmInfo(panel);
                     });
         }
     }
 
     private void drawLLMModelInput(FlowLayout panel) {
-        panel.childById(LabelComponent.class, "llmModel-label").text(Text.of(NPCConfig.LLM_MODEL));
+        FlowLayout llmModelContainer = panel.childById(FlowLayout.class, "llmModel");
+        llmModelContainer.clearChildren();
+        llmModelContainer.child(Components.label(Text.of(NPCConfig.LLM_MODEL)).shadow(true));
         switch (config.getLlmType()) {
             case OLLAMA, OPENAI -> {
-                TextAreaComponent llmModel = Components.textArea(Sizing.fill(17), Sizing.fill(7))
+                TextAreaComponent llmModel = Components.textArea(Sizing.fill(HALF_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
                         .text(config.getLlmModel());
                 llmModel.onChanged().subscribe(config::setLlmModel);
-                panel.childById(FlowLayout.class, "llmModel").child(llmModel);
+                llmModelContainer.child(llmModel);
             }
         }
     }
+
+    private void drawSkinSelector(FlowLayout llmInfo) {
+        llmInfo.child(Components.label(Text.of("NPC Skin")).shadow(true).margins(Insets.top(7)));
+        final int[] selectedIndex = {getSkinOptionIndex(config.getSkinUrl())};
+        LabelComponent selectedSkin = Components.label(Text.of(SKIN_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
+
+        FlowLayout row = Containers.horizontalFlow(Sizing.fixed(150), Sizing.content());
+        row.gap(4);
+        selectedSkin.sizing(Sizing.fixed(100), Sizing.content());
+
+        row.child(Components.button(Text.of("<"), button -> {
+            selectedIndex[0] = Math.floorMod(selectedIndex[0] - 1, SKIN_OPTIONS.size());
+            applySkinSelection(selectedIndex[0], selectedSkin);
+        }).sizing(Sizing.fixed(20), Sizing.content()));
+        row.child(selectedSkin);
+        row.child(Components.button(Text.of(">"), button -> {
+            selectedIndex[0] = Math.floorMod(selectedIndex[0] + 1, SKIN_OPTIONS.size());
+            applySkinSelection(selectedIndex[0], selectedSkin);
+        }).sizing(Sizing.fixed(20), Sizing.content()));
+
+        llmInfo.child(row);
+    }
+
+    private void drawOpenAiVoiceSelector(FlowLayout llmInfo) {
+        llmInfo.child(Components.label(Text.of("NPC Voice")).shadow(true).margins(Insets.top(7)));
+        final int[] selectedIndex = {getOpenAiVoiceIndex(config.getVoiceId())};
+        LabelComponent selectedVoice = Components.label(Text.of(OPENAI_VOICE_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
+
+        FlowLayout row = Containers.horizontalFlow(Sizing.fixed(150), Sizing.content());
+        row.gap(4);
+        selectedVoice.sizing(Sizing.fixed(100), Sizing.content());
+
+        row.child(Components.button(Text.of("<"), button -> {
+            selectedIndex[0] = Math.floorMod(selectedIndex[0] - 1, OPENAI_VOICE_OPTIONS.size());
+            applyVoiceSelection(selectedIndex[0], selectedVoice);
+        }).sizing(Sizing.fixed(20), Sizing.content()));
+        row.child(selectedVoice);
+        row.child(Components.button(Text.of(">"), button -> {
+            selectedIndex[0] = Math.floorMod(selectedIndex[0] + 1, OPENAI_VOICE_OPTIONS.size());
+            applyVoiceSelection(selectedIndex[0], selectedVoice);
+        }).sizing(Sizing.fixed(20), Sizing.content()));
+
+        llmInfo.child(row);
+        applyVoiceSelection(selectedIndex[0], selectedVoice);
+    }
+
+    private void applySkinSelection(int index, LabelComponent selectedSkin) {
+        SkinOption selected = SKIN_OPTIONS.get(index);
+        selectedSkin.text(Text.of(selected.name()));
+        config.setSkinUrl(selected.url());
+    }
+
+    private int getSkinOptionIndex(String currentUrl) {
+        for (int i = 0; i < SKIN_OPTIONS.size(); i++) {
+            if (SKIN_OPTIONS.get(i).url().equals(currentUrl)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private void applyVoiceSelection(int index, LabelComponent selectedVoice) {
+        VoiceOption selected = OPENAI_VOICE_OPTIONS.get(index);
+        selectedVoice.text(Text.of(selected.name()));
+        config.setVoiceId(selected.value());
+    }
+
+    private int getOpenAiVoiceIndex(String currentVoiceId) {
+        if (currentVoiceId == null || currentVoiceId.isBlank()) {
+            return 0;
+        }
+        for (int i = 0; i < OPENAI_VOICE_OPTIONS.size(); i++) {
+            if (OPENAI_VOICE_OPTIONS.get(i).value().equalsIgnoreCase(currentVoiceId.trim())) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private void applyLastUsedDefaults(LLMType llmType) {
+        Optional<NPCConfig> matching = findLastConfigByType(llmType);
+        if (matching.isPresent()) {
+            NPCConfig previous = matching.get();
+            config.setLlmModel(previous.getLlmModel());
+        }
+    }
+
+    private Optional<NPCConfig> findLastConfigByType(LLMType llmType) {
+        for (int i = existingConfigs.size() - 1; i >= 0; i--) {
+            NPCConfig candidate = existingConfigs.get(i);
+            if (candidate.getLlmType() == llmType) {
+                return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private record SkinOption(String name, String url) {}
+
+    private record VoiceOption(String name, String value) {}
 }

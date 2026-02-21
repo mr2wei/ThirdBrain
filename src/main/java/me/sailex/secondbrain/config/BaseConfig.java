@@ -14,6 +14,9 @@ public class BaseConfig implements Configurable {
     private int contextVerticalScanRange = 8;
     private int chunkExpiryTime = 60;
     private boolean verbose = false;
+    private String ollamaUrl = "http://localhost:11434";
+    private String openaiBaseUrl = "https://api.openai.com/v1";
+    private String openaiApiKey = "";
 
     public int getLlmTimeout() {
         return llmTimeout;
@@ -55,6 +58,30 @@ public class BaseConfig implements Configurable {
         this.verbose = verbose;
     }
 
+    public String getOllamaUrl() {
+        return ollamaUrl;
+    }
+
+    public void setOllamaUrl(String ollamaUrl) {
+        this.ollamaUrl = ollamaUrl;
+    }
+
+    public String getOpenaiBaseUrl() {
+        return openaiBaseUrl;
+    }
+
+    public void setOpenaiBaseUrl(String openaiBaseUrl) {
+        this.openaiBaseUrl = openaiBaseUrl;
+    }
+
+    public String getOpenaiApiKey() {
+        return openaiApiKey;
+    }
+
+    public void setOpenaiApiKey(String openaiApiKey) {
+        this.openaiApiKey = openaiApiKey;
+    }
+
     @Override
     public String getConfigName() {
         return "base";
@@ -66,6 +93,9 @@ public class BaseConfig implements Configurable {
             Endec.INT.fieldOf("contextVerticalScanRange", BaseConfig::getContextVerticalScanRange),
             Endec.INT.fieldOf("chunkExpiryTime", BaseConfig::getChunkExpiryTime),
             Endec.BOOLEAN.fieldOf("verbose", BaseConfig::isVerbose),
+            Endec.STRING.fieldOf("ollamaUrl", BaseConfig::getOllamaUrl),
+            Endec.STRING.fieldOf("openaiBaseUrl", BaseConfig::getOpenaiBaseUrl),
+            Endec.STRING.fieldOf("openaiApiKey", BaseConfig::getOpenaiApiKey),
             BaseConfig::new
     );
 
@@ -76,7 +106,23 @@ public class BaseConfig implements Configurable {
                 ",contextChunkRadius=" + contextChunkRadius +
                 ",contextVerticalScanRange=" + contextVerticalScanRange +
                 ",chunkExpiryTime=" + chunkExpiryTime +
-                ",verbose=" + verbose +"}";
+                ",verbose=" + verbose +
+                ",ollamaUrl=" + ollamaUrl +
+                ",openaiBaseUrl=" + openaiBaseUrl +
+                ",openaiApiKey=***}";
+    }
+
+    public static BaseConfig deepCopy(BaseConfig config) {
+        BaseConfig copied = new BaseConfig();
+        copied.setLlmTimeout(config.getLlmTimeout());
+        copied.setContextChunkRadius(config.getContextChunkRadius());
+        copied.setContextVerticalScanRange(config.getContextVerticalScanRange());
+        copied.setChunkExpiryTime(config.getChunkExpiryTime());
+        copied.setVerbose(config.isVerbose());
+        copied.setOllamaUrl(config.getOllamaUrl());
+        copied.setOpenaiBaseUrl(config.getOpenaiBaseUrl());
+        copied.setOpenaiApiKey(config.getOpenaiApiKey());
+        return copied;
     }
 
     public static final String LLM_TIMEOUT_KEY = "LLM Service Timeout";
@@ -84,4 +130,7 @@ public class BaseConfig implements Configurable {
     public static final String CONTEXT_VERTICAL_RANGE_KEY = "Vertical Scan Range";
     public static final String CHUNK_EXPIRY_TIME_KEY = "Chunk Expiry Time";
     public static final String VERBOSE_KEY = "Debug Mode";
+    public static final String OLLAMA_URL_KEY = "Ollama URL";
+    public static final String OPENAI_BASE_URL_KEY = "OpenAI Compatible URL";
+    public static final String OPENAI_API_KEY = "OpenAI API Key";
 }

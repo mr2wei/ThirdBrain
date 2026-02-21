@@ -101,7 +101,6 @@ public class ConfigProvider {
     public synchronized void updateNpcConfig(NPCConfig updatedConfig) {
         npcConfigs.forEach(config -> {
             if (config.getNpcName().equals(updatedConfig.getNpcName())) {
-                if (config.getOpenaiApiKey().isEmpty()) updatedConfig.setOpenaiApiKey(config.getOpenaiApiKey()); //prevent overwriting key with default string
                 npcConfigs.set(npcConfigs.indexOf(config), updatedConfig);
             }
         });

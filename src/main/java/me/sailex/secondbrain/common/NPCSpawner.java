@@ -91,6 +91,10 @@ public class NPCSpawner {
                 //?}
                 return;
             }
+            String fallbackMessage = "Failed to apply selected skin for NPC '" + config.getNpcName()
+                    + "' from URL: " + skinUrl + ". Falling back to default/profile skin.";
+            LogUtil.errorInChat(fallbackMessage);
+            LogUtil.error(fallbackMessage);
         }
 
         //? >=1.21.10 {
@@ -218,6 +222,9 @@ public class NPCSpawner {
                 return new Property(TEXTURES, response.texture(), response.signature());
             }
         } catch (MineSkinProxyClientException e) {
+            String message = "Skin fetch failed for URL " + skinUrl + ": " + e.getMessage();
+            LogUtil.errorInChat(message);
+            LogUtil.error(message);
             LogUtil.error(e);
         }
         return null;

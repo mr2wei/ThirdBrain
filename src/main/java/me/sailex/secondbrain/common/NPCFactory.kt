@@ -50,8 +50,8 @@ class NPCFactory(
     private fun initLLMClient(config: NPCConfig): LLMClient {
         val baseConfig = configProvider.baseConfig
         val llmClient = when (config.llmType) {
-            LLMType.OLLAMA -> OllamaClient(config.llmModel, config.ollamaUrl, baseConfig.llmTimeout, baseConfig.isVerbose)
-            LLMType.OPENAI -> OpenAiClient(config.llmModel, config.openaiApiKey, baseConfig.llmTimeout)
+            LLMType.OLLAMA -> OllamaClient(config.llmModel, baseConfig.ollamaUrl, baseConfig.llmTimeout, baseConfig.isVerbose)
+            LLMType.OPENAI -> OpenAiClient(config.llmModel, baseConfig.openaiApiKey, baseConfig.openaiBaseUrl, baseConfig.llmTimeout, config.voiceId)
             LLMType.PLAYER2 -> Player2APIClient(config.voiceId, config.npcName, baseConfig.llmTimeout)
             else -> throw NPCCreationException("Invalid LLM type: ${config.llmType}")
         }

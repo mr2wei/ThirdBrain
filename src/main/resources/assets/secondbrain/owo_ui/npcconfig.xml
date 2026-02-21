@@ -9,49 +9,70 @@
                         <flow-layout direction="vertical">
                             <children>
 
-                                <flow-layout direction="vertical" id="npcName">
-                                    <children>
-                                        <label id="npcName-label">
-                                            <shadow>true</shadow>
-                                        </label>
-                                    </children>
-                                </flow-layout>
+                                <scroll direction="vertical">
+                                    <flow-layout direction="vertical">
+                                        <children>
+                                            <flow-layout direction="vertical" id="npcName">
+                                                <children>
+                                                    <label id="npcName-label">
+                                                        <shadow>true</shadow>
+                                                    </label>
+                                                </children>
+                                            </flow-layout>
+
+                                            <flow-layout direction="horizontal">
+                                                <children>
+
+                                                    <flow-layout direction="vertical">
+                                                        <children>
+                                                            <label id="llmType-label">
+                                                                <shadow>true</shadow>
+                                                            </label>
+                                                            <dropdown id="llmType">
+                                                                <sizing>
+                                                                    <horizontal method="fill">24</horizontal>
+                                                                </sizing>
+                                                            </dropdown>
+                                                        </children>
+                                                    </flow-layout>
+
+                                                    <flow-layout direction="vertical" id="llmModel">
+                                                        <children>
+                                                            <label id="llmModel-label">
+                                                                <shadow>true</shadow>
+                                                            </label>
+                                                        </children>
+                                                    </flow-layout>
+
+                                                </children>
+                                            </flow-layout>
+
+                                            <flow-layout direction="vertical" id="llmInfo">
+                                                <children>
+                                                </children>
+                                            </flow-layout>
+                                        </children>
+
+                                        <gap>8</gap>
+                                    </flow-layout>
+
+                                    <sizing>
+                                        <vertical method="fixed">180</vertical>
+                                    </sizing>
+                                </scroll>
 
                                 <flow-layout direction="horizontal">
                                     <children>
-
-                                        <flow-layout direction="vertical">
-                                            <children>
-                                                <label id="llmType-label">
-                                                    <shadow>true</shadow>
-                                                </label>
-                                                <dropdown id="llmType">
-                                                    <sizing>
-                                                        <horizontal method="fill">18</horizontal>
-                                                    </sizing>
-                                                </dropdown>
-                                            </children>
-                                        </flow-layout>
-
-                                        <flow-layout direction="vertical" id="llmModel">
-                                            <children>
-                                                <label id="llmModel-label">
-                                                    <shadow>true</shadow>
-                                                </label>
-                                            </children>
-                                        </flow-layout>
-
+                                        <button id="cancel">
+                                            <text>Cancel</text>
+                                        </button>
+                                        <button id="save">
+                                            <text>Save</text>
+                                        </button>
                                     </children>
-                                </flow-layout>
 
-                                <flow-layout direction="vertical" id="llmInfo">
-                                    <children>
-                                    </children>
+                                    <gap>6</gap>
                                 </flow-layout>
-
-                                <button id="save">
-                                    <text>Save</text>
-                                </button>
 
                             </children>
 
@@ -59,7 +80,7 @@
                                 <all>11</all>
                             </margins>
 
-                            <gap>7</gap>
+                            <gap>9</gap>
 
                             <horizontal-alignment>left</horizontal-alignment>
                             <vertical-alignment>center</vertical-alignment>
