@@ -1,11 +1,36 @@
-<h1 align="center" style="font-weight: normal;"><b>SecondBrain</b></h1>
+<h1 align="center" style="font-weight: normal;"><b>ThirdBrain</b></h1>
 <p align="center"><img src="https://raw.githubusercontent.com/sailex428/SecondBrain/refs/heads/main/logo.png" alt="mod-logo"></p>
 
-A Fabric mod that brings intelligent NPCs to your minecraft world. Create player-like characters controlled by LLMs that respond to your chat messages and perform basic player actions.
+A Fabric mod that brings intelligent NPCs to your minecraft world. ThirdBrain is a fork of SecondBrain that focuses on in-world NPC behavior for prebuilt experiences, rather than companion-style automation. Create player-like characters controlled by LLMs that respond to chat and support authored gameplay.
 
 **This mod works fully serverside. It must also be installed on a client for setup.**
 
 > **State of Development**: (19.10.25) Fixing issues executing NPC tasks, Updating it to 1.21.1 and the latest mc version
+
+## How ThirdBrain differs from original SecondBrain
+
+ThirdBrain keeps the same core concept as SecondBrain, but shifts the design toward NPCs that belong to the world itself, not toward a player companion model. The goal is to improve how this system works inside adventure maps and story-driven maps, where NPCs need consistent lore-friendly behavior, predictable interactions, and tighter narrative control.
+
+Recent changes include:
+
+- Expanded per-NPC context and control
+  - Memory fragments
+  - Per-NPC conversation range (tune interaction scope/retained context per character)
+  - Dedicated configuration screens for memory and zone behavior (clearer setup for complex maps)
+- Tighter LLM instruction + output rules
+  - Enforce world-NPC behavior (brief intro, wait for explicit requests, prefer dialogue/roleplay guidance)
+  - Default to `idle` when no safe action is needed
+  - Refuse prohibited actions (attacking, mining, placing, breaking blocks)
+  - Stricter output format (short plain-text message + a single valid JSON command) to improve reliability and reduce unsafe/off-format responses
+- Runtime/provider + config improvements
+  - Updated OpenAI integration
+  - Zone-aware behavior injection with priority handling
+
+Overall, ThirdBrain prioritizes context persistence, non-destructive actions, narrative usability, and cleaner configuration UX for authored worlds.
+
+## What I did not test
+
+- I did not test the mod with the Player2 App, I only tested it with Ollama and OpenAI.
 
 ## Requirements
       
