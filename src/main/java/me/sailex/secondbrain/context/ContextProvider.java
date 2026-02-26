@@ -37,8 +37,8 @@ public class ContextProvider {
 			WorldContext context = new WorldContext(
 					getNpcState(),
 					getInventoryState(),
-					chunkManager.getNearbyBlocks(),
-					getNearbyEntities()
+					List.copyOf(chunkManager.getNearbyBlocks()),
+					List.copyOf(getNearbyEntities())
 			);
 //			chunkManager.getNearbyBlocks().forEach(blockData -> LogUtil.debugInChat(blockData.toString()));
 			this.cachedContext = context;

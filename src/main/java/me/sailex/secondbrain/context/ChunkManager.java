@@ -1,6 +1,5 @@
 package me.sailex.secondbrain.context;
 
-import lombok.Getter;
 import me.sailex.altoclef.multiversion.EntityVer;
 import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.model.context.BlockData;
@@ -29,8 +28,7 @@ public class ChunkManager {
     private final ScheduledExecutorService threadPool;
     private final List<BlockData> currentLoadedBlocks;
 
-    @Getter
-    private final List<BlockData> nearbyBlocks = new ArrayList<>();
+    private volatile List<BlockData> nearbyBlocks = List.of();
 
 
     public ChunkManager(ServerPlayerEntity npcEntity, BaseConfig config) {
@@ -91,7 +89,7 @@ public class ChunkManager {
                 nearestBlocks.put(blockType, block);
             }
         }
-        this.nearbyBlocks.addAll(nearestBlocks.values());
+        this.nearbyBlocks = List.copyOf(nearestBlocks.values());
     }
 
     /**
@@ -172,5 +170,9 @@ public class ChunkManager {
 
     public void stopService() {
         this.threadPool.shutdownNow();
+    }
+
+    public List<BlockData> getNearbyBlocks() {
+        return nearbyBlocks;
     }
 }
