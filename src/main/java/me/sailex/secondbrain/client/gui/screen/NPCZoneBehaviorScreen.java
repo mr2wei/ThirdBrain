@@ -1,10 +1,8 @@
 package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextAreaComponent;
-import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
@@ -19,6 +17,13 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.IntConsumer;
 
+/*? >=1.21.11 {*/
+import static io.wispforest.owo.ui.component.UIComponents.*;
+import static io.wispforest.owo.ui.container.UIContainers.*;
+/*?} else {*/
+import static io.wispforest.owo.ui.component.Components.*;
+import static io.wispforest.owo.ui.container.Containers.*;
+/*?}*/
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
 public class NPCZoneBehaviorScreen extends ConfigScreen<NPCConfig> {
@@ -97,7 +102,7 @@ public class NPCZoneBehaviorScreen extends ConfigScreen<NPCConfig> {
         zoneList.clearChildren();
         expandedZones.keySet().removeIf(zone -> !config.getZoneBehaviors().contains(zone));
         if (config.getZoneBehaviors().isEmpty()) {
-            zoneList.child(Components.label(Text.of("No zones configured yet.")).shadow(true));
+            zoneList.child(label(Text.of("No zones configured yet.")).shadow(true));
             return;
         }
 
@@ -105,12 +110,12 @@ public class NPCZoneBehaviorScreen extends ConfigScreen<NPCConfig> {
             int zoneIndex = i;
             NPCConfig.ZoneBehavior zone = config.getZoneBehaviors().get(i);
 
-            FlowLayout zoneCard = Containers.verticalFlow(Sizing.fill(96), Sizing.content());
+            FlowLayout zoneCard = verticalFlow(Sizing.fill(96), Sizing.content());
             zoneCard.gap(4);
             zoneCard.padding(Insets.of(6));
             zoneCard.surface(Surface.DARK_PANEL);
             boolean isExpanded = expandedZones.getOrDefault(zone, true);
-            zoneCard.child(Components.button(
+            zoneCard.child(button(
                     Text.of((isExpanded ? "[-] " : "[+] ") + "Zone " + (i + 1)),
                     button -> {
                         expandedZones.put(zone, !expandedZones.getOrDefault(zone, true));
@@ -119,35 +124,35 @@ public class NPCZoneBehaviorScreen extends ConfigScreen<NPCConfig> {
             ).sizing(Sizing.fill(100), Sizing.content()));
 
             if (isExpanded) {
-                FlowLayout zoneDetails = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+                FlowLayout zoneDetails = verticalFlow(Sizing.fill(100), Sizing.content());
                 zoneDetails.gap(4);
 
-                zoneDetails.child(Components.label(Text.of("Name")).shadow(true));
-                TextAreaComponent zoneNameInput = Components.textArea(
+                zoneDetails.child(label(Text.of("Name")).shadow(true));
+                TextAreaComponent zoneNameInput = textArea(
                         Sizing.fill(WIDE_INPUT_WIDTH),
                         Sizing.fill(SINGLE_LINE_INPUT_HEIGHT)
                 ).text(zone.getName());
                 zoneNameInput.onChanged().subscribe(zone::setName);
                 zoneDetails.child(zoneNameInput);
 
-                zoneDetails.child(Components.label(Text.of("Priority")).shadow(true));
+                zoneDetails.child(label(Text.of("Priority")).shadow(true));
                 zoneDetails.child(createIntegerInput(zone.getPriority(), zone::setPriority));
 
-                zoneDetails.child(Components.label(Text.of("From (x, y, z)")).shadow(true));
+                zoneDetails.child(label(Text.of("From (x, y, z)")).shadow(true));
                 zoneDetails.child(createCoordinateRow(zone.getFrom()));
 
-                zoneDetails.child(Components.label(Text.of("To (x, y, z)")).shadow(true));
+                zoneDetails.child(label(Text.of("To (x, y, z)")).shadow(true));
                 zoneDetails.child(createCoordinateRow(zone.getTo()));
 
-                zoneDetails.child(Components.label(Text.of("Extra Instructions")).shadow(true));
-                TextAreaComponent instructionsInput = Components.textArea(
+                zoneDetails.child(label(Text.of("Extra Instructions")).shadow(true));
+                TextAreaComponent instructionsInput = textArea(
                         Sizing.fill(WIDE_INPUT_WIDTH),
                         Sizing.fill(ZONE_INSTRUCTIONS_HEIGHT)
                 ).text(zone.getInstructions());
                 instructionsInput.onChanged().subscribe(zone::setInstructions);
                 zoneDetails.child(instructionsInput);
 
-                zoneDetails.child(Components.button(Text.of("Remove Zone"), button -> {
+                zoneDetails.child(button(Text.of("Remove Zone"), button -> {
                     expandedZones.remove(zone);
                     config.getZoneBehaviors().remove(zoneIndex);
                     renderZones(zoneList);
@@ -160,19 +165,19 @@ public class NPCZoneBehaviorScreen extends ConfigScreen<NPCConfig> {
     }
 
     private FlowLayout createCoordinateRow(NPCConfig.ZoneCoordinate coordinate) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        FlowLayout row = horizontalFlow(Sizing.content(), Sizing.content());
         row.gap(4);
-        row.child(Components.label(Text.of("x")).shadow(true));
+        row.child(label(Text.of("x")).shadow(true));
         row.child(createIntegerInput(coordinate.getX(), coordinate::setX));
-        row.child(Components.label(Text.of("y")).shadow(true));
+        row.child(label(Text.of("y")).shadow(true));
         row.child(createIntegerInput(coordinate.getY(), coordinate::setY));
-        row.child(Components.label(Text.of("z")).shadow(true));
+        row.child(label(Text.of("z")).shadow(true));
         row.child(createIntegerInput(coordinate.getZ(), coordinate::setZ));
         return row;
     }
 
     private TextAreaComponent createIntegerInput(int currentValue, IntConsumer setter) {
-        TextAreaComponent input = Components.textArea(
+        TextAreaComponent input = textArea(
                 Sizing.fixed(INTEGER_INPUT_WIDTH),
                 Sizing.fill(SINGLE_LINE_INPUT_HEIGHT)
         ).text(String.valueOf(currentValue));

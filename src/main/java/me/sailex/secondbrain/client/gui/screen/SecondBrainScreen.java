@@ -2,8 +2,6 @@ package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.base.BaseUIModelScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 
 import io.wispforest.owo.ui.core.Insets;
@@ -19,6 +17,13 @@ import net.minecraft.util.Identifier;
 
 import java.util.List;
 
+/*? >=1.21.11 {*/
+import static io.wispforest.owo.ui.component.UIComponents.*;
+import static io.wispforest.owo.ui.container.UIContainers.*;
+/*?} else {*/
+import static io.wispforest.owo.ui.component.Components.*;
+import static io.wispforest.owo.ui.container.Containers.*;
+/*?}*/
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
 public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
@@ -54,17 +59,17 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
     }
 
     private void addNpcComponent(FlowLayout panelComponent, NPCConfig config) {
-        FlowLayout npcContainer = Containers.verticalFlow(Sizing.fixed(280), Sizing.content());
+        FlowLayout npcContainer = verticalFlow(Sizing.fixed(280), Sizing.content());
         npcContainer.margins(Insets.bottom(1));
         npcContainer.surface(Surface.DARK_PANEL).padding(Insets.of(10));
 
-        FlowLayout npcLabelContainer = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        FlowLayout npcLabelContainer = horizontalFlow(Sizing.content(), Sizing.content());
         npcLabelContainer.gap(2);
-        npcLabelContainer.child(Components.label(Text.of(config.getNpcName())));
+        npcLabelContainer.child(label(Text.of(config.getNpcName())));
         addTypeSpecificLabelTexture(npcLabelContainer, config);
         npcContainer.child(npcLabelContainer);
 
-        FlowLayout npcButtonContainer = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        FlowLayout npcButtonContainer = horizontalFlow(Sizing.content(), Sizing.content());
         npcButtonContainer.gap(2);
 
         addNpcSpawnButton(npcButtonContainer, config);
@@ -84,12 +89,12 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
             case PLAYER2 -> iconPath = "player2-icon.png";
             default -> iconPath = "icon.png";
         }
-        npcLabelContainer.child(Components.texture(Identifier.of(MOD_ID, iconPath), 0, 0,
+        npcLabelContainer.child(texture(Identifier.of(MOD_ID, iconPath), 0, 0,
                 55, 55, 55, 55).sizing(Sizing.fixed(8), Sizing.fixed(8)));
     }
 
     private void addNpcSpawnButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        npcButtonContainer.child(Components.button(isActiveText(config), button -> {
+        npcButtonContainer.child(button(isActiveText(config), button -> {
             if (config.isActive()) {
                 networkManager.sendPacket(new DeleteNpcPacket(config.getUuid().toString(), false));
             } else {
@@ -100,25 +105,25 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
     }
 
     private void addNpcEditButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        npcButtonContainer.child(Components.button(Text.of("Edit"), button ->
+        npcButtonContainer.child(button(Text.of("Edit"), button ->
                 client.setScreen(new NPCConfigScreen(networkManager, config, true, npcConfig))
         ));
     }
 
     private void addNpcFragmentsButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        npcButtonContainer.child(Components.button(Text.of("Fragments"), button ->
+        npcButtonContainer.child(button(Text.of("Fragments"), button ->
                 client.setScreen(new NPCMemoryFragmentsScreen(networkManager, config, this))
         ));
     }
 
     private void addNpcZonesButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        npcButtonContainer.child(Components.button(Text.of("Zones"), button ->
+        npcButtonContainer.child(button(Text.of("Zones"), button ->
                 client.setScreen(new NPCZoneBehaviorScreen(networkManager, config, npcConfig, baseConfig))
         ));
     }
 
     private void addNpcDeleteButton(FlowLayout npcButtonContainer, NPCConfig config) {
-        npcButtonContainer.child(Components.button(Text.of("Delete"), button -> {
+        npcButtonContainer.child(button(Text.of("Delete"), button -> {
             networkManager.sendPacket(new DeleteNpcPacket(config.getUuid().toString(), true));
             close();
         }));

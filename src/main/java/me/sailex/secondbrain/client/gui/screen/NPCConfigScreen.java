@@ -1,7 +1,6 @@
 package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.component.*;
-import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 
 import io.wispforest.owo.ui.core.Insets;
@@ -17,6 +16,13 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 import java.util.Optional;
 
+/*? >=1.21.11 {*/
+import static io.wispforest.owo.ui.component.UIComponents.*;
+import static io.wispforest.owo.ui.container.UIContainers.*;
+/*?} else {*/
+import static io.wispforest.owo.ui.component.Components.*;
+import static io.wispforest.owo.ui.container.Containers.*;
+/*?}*/
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
 public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
@@ -74,7 +80,7 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
         } else {
             applyLastUsedDefaults(config.getLlmType());
             npcNameLabel.text(Text.of(NPCConfig.NPC_NAME));
-            TextAreaComponent npcName = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
+            TextAreaComponent npcName = textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
                     .text(config.getNpcName());
             npcName.onChanged().subscribe(config::setNpcName);
             panel.childById(FlowLayout.class, "npcName").child(npcName);
@@ -113,8 +119,8 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
             case OPENAI -> llmInfo.child(buildUseTtsCheckbox());
         }
         //system prompt
-        llmInfo.child(Components.label(Text.of(NPCConfig.LLM_CHARACTER)).shadow(true).margins(Insets.top(7)));
-        TextAreaComponent llmCharacter = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(CHARACTER_INPUT_HEIGHT));
+        llmInfo.child(label(Text.of(NPCConfig.LLM_CHARACTER)).shadow(true).margins(Insets.top(7)));
+        TextAreaComponent llmCharacter = textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(CHARACTER_INPUT_HEIGHT));
         llmCharacter.text(config.getLlmCharacter())
                 .onChanged()
                 .subscribe(config::setLlmCharacter);
@@ -142,14 +148,14 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
     }
 
     private CheckboxComponent buildUseTtsCheckbox() {
-        return Components.checkbox(Text.of("Use TTS"))
+        return checkbox(Text.of("Use TTS"))
                 .checked(config.isTTS())
                 .onChanged(listener -> config.setTTS(!config.isTTS()));
     }
 
     private void drawZoneSpecificBehaviourButton(FlowLayout llmInfo) {
-        llmInfo.child(Components.label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
-        llmInfo.child(Components.button(
+        llmInfo.child(label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
+        llmInfo.child(button(
                 Text.of("Open Zones (" + config.getZoneBehaviors().size() + ")"),
                 button -> client.setScreen(new NPCZoneBehaviorScreen(networkManager, config, isEdit, existingConfigs))
         ).sizing(Sizing.fill(HALF_INPUT_WIDTH), Sizing.content()));
@@ -187,10 +193,10 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
     private void drawLLMModelInput(FlowLayout panel) {
         FlowLayout llmModelContainer = panel.childById(FlowLayout.class, "llmModel");
         llmModelContainer.clearChildren();
-        llmModelContainer.child(Components.label(Text.of(NPCConfig.LLM_MODEL)).shadow(true));
+        llmModelContainer.child(label(Text.of(NPCConfig.LLM_MODEL)).shadow(true));
         switch (config.getLlmType()) {
             case OLLAMA, OPENAI -> {
-                TextAreaComponent llmModel = Components.textArea(Sizing.fill(HALF_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
+                TextAreaComponent llmModel = textArea(Sizing.fill(HALF_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
                         .text(config.getLlmModel());
                 llmModel.onChanged().subscribe(config::setLlmModel);
                 llmModelContainer.child(llmModel);
@@ -199,20 +205,20 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
     }
 
     private void drawSkinSelector(FlowLayout llmInfo) {
-        llmInfo.child(Components.label(Text.of("NPC Skin")).shadow(true).margins(Insets.top(7)));
+        llmInfo.child(label(Text.of("NPC Skin")).shadow(true).margins(Insets.top(7)));
         final int[] selectedIndex = {getSkinOptionIndex(config.getSkinUrl())};
-        LabelComponent selectedSkin = Components.label(Text.of(SKIN_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
+        LabelComponent selectedSkin = label(Text.of(SKIN_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
 
-        FlowLayout row = Containers.horizontalFlow(Sizing.fixed(150), Sizing.content());
+        FlowLayout row = horizontalFlow(Sizing.fixed(150), Sizing.content());
         row.gap(4);
         selectedSkin.sizing(Sizing.fixed(100), Sizing.content());
 
-        row.child(Components.button(Text.of("<"), button -> {
+        row.child(button(Text.of("<"), button -> {
             selectedIndex[0] = Math.floorMod(selectedIndex[0] - 1, SKIN_OPTIONS.size());
             applySkinSelection(selectedIndex[0], selectedSkin);
         }).sizing(Sizing.fixed(20), Sizing.content()));
         row.child(selectedSkin);
-        row.child(Components.button(Text.of(">"), button -> {
+        row.child(button(Text.of(">"), button -> {
             selectedIndex[0] = Math.floorMod(selectedIndex[0] + 1, SKIN_OPTIONS.size());
             applySkinSelection(selectedIndex[0], selectedSkin);
         }).sizing(Sizing.fixed(20), Sizing.content()));
@@ -221,20 +227,20 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
     }
 
     private void drawOpenAiVoiceSelector(FlowLayout llmInfo) {
-        llmInfo.child(Components.label(Text.of("NPC Voice")).shadow(true).margins(Insets.top(7)));
+        llmInfo.child(label(Text.of("NPC Voice")).shadow(true).margins(Insets.top(7)));
         final int[] selectedIndex = {getOpenAiVoiceIndex(config.getVoiceId())};
-        LabelComponent selectedVoice = Components.label(Text.of(OPENAI_VOICE_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
+        LabelComponent selectedVoice = label(Text.of(OPENAI_VOICE_OPTIONS.get(selectedIndex[0]).name())).shadow(true);
 
-        FlowLayout row = Containers.horizontalFlow(Sizing.fixed(150), Sizing.content());
+        FlowLayout row = horizontalFlow(Sizing.fixed(150), Sizing.content());
         row.gap(4);
         selectedVoice.sizing(Sizing.fixed(100), Sizing.content());
 
-        row.child(Components.button(Text.of("<"), button -> {
+        row.child(button(Text.of("<"), button -> {
             selectedIndex[0] = Math.floorMod(selectedIndex[0] - 1, OPENAI_VOICE_OPTIONS.size());
             applyVoiceSelection(selectedIndex[0], selectedVoice);
         }).sizing(Sizing.fixed(20), Sizing.content()));
         row.child(selectedVoice);
-        row.child(Components.button(Text.of(">"), button -> {
+        row.child(button(Text.of(">"), button -> {
             selectedIndex[0] = Math.floorMod(selectedIndex[0] + 1, OPENAI_VOICE_OPTIONS.size());
             applyVoiceSelection(selectedIndex[0], selectedVoice);
         }).sizing(Sizing.fixed(20), Sizing.content()));

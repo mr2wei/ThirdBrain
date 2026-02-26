@@ -2,10 +2,8 @@ package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.CheckboxComponent;
-import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextAreaComponent;
-import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
@@ -19,6 +17,13 @@ import net.minecraft.util.Identifier;
 
 import java.util.IdentityHashMap;
 
+/*? >=1.21.11 {*/
+import static io.wispforest.owo.ui.component.UIComponents.*;
+import static io.wispforest.owo.ui.container.UIContainers.*;
+/*?} else {*/
+import static io.wispforest.owo.ui.component.Components.*;
+import static io.wispforest.owo.ui.container.Containers.*;
+/*?}*/
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
 public class NPCMemoryFragmentsScreen extends ConfigScreen<NPCConfig> {
@@ -66,7 +71,7 @@ public class NPCMemoryFragmentsScreen extends ConfigScreen<NPCConfig> {
         fragmentList.clearChildren();
         expandedFragments.keySet().removeIf(fragment -> !config.getMemoryFragments().contains(fragment));
         if (config.getMemoryFragments().isEmpty()) {
-            fragmentList.child(Components.label(Text.of("No memory fragments yet.")).shadow(true));
+            fragmentList.child(label(Text.of("No memory fragments yet.")).shadow(true));
             return;
         }
 
@@ -74,12 +79,12 @@ public class NPCMemoryFragmentsScreen extends ConfigScreen<NPCConfig> {
             int fragmentIndex = i;
             NPCConfig.MemoryFragment fragment = config.getMemoryFragments().get(i);
 
-            FlowLayout fragmentCard = Containers.verticalFlow(Sizing.fill(96), Sizing.content());
+            FlowLayout fragmentCard = verticalFlow(Sizing.fill(96), Sizing.content());
             fragmentCard.gap(4);
             fragmentCard.padding(Insets.of(6));
             fragmentCard.surface(Surface.DARK_PANEL);
             boolean isExpanded = expandedFragments.getOrDefault(fragment, true);
-            fragmentCard.child(Components.button(
+            fragmentCard.child(button(
                     Text.of((isExpanded ? "[-] " : "[+] ") + "Fragment " + (i + 1)),
                     button -> {
                         expandedFragments.put(fragment, !expandedFragments.getOrDefault(fragment, true));
@@ -88,31 +93,31 @@ public class NPCMemoryFragmentsScreen extends ConfigScreen<NPCConfig> {
             ).sizing(Sizing.fill(100), Sizing.content()));
 
             if (isExpanded) {
-                FlowLayout fragmentDetails = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+                FlowLayout fragmentDetails = verticalFlow(Sizing.fill(100), Sizing.content());
                 fragmentDetails.gap(4);
 
-                fragmentDetails.child(Components.label(Text.of("ID")).shadow(true));
-                TextAreaComponent idInput = Components.textArea(
+                fragmentDetails.child(label(Text.of("ID")).shadow(true));
+                TextAreaComponent idInput = textArea(
                         Sizing.fill(WIDE_INPUT_WIDTH),
                         Sizing.fill(SINGLE_LINE_INPUT_HEIGHT)
                 ).text(fragment.getId());
                 idInput.onChanged().subscribe(fragment::setId);
                 fragmentDetails.child(idInput);
 
-                fragmentDetails.child(Components.label(Text.of("Prompt")).shadow(true));
-                TextAreaComponent promptInput = Components.textArea(
+                fragmentDetails.child(label(Text.of("Prompt")).shadow(true));
+                TextAreaComponent promptInput = textArea(
                         Sizing.fill(WIDE_INPUT_WIDTH),
                         Sizing.fill(PROMPT_INPUT_HEIGHT)
                 ).text(fragment.getPrompt());
                 promptInput.onChanged().subscribe(fragment::setPrompt);
                 fragmentDetails.child(promptInput);
 
-                CheckboxComponent unlocked = Components.checkbox(Text.of("Unlocked"))
+                CheckboxComponent unlocked = checkbox(Text.of("Unlocked"))
                         .checked(fragment.isUnlocked())
                         .onChanged(fragment::setUnlocked);
                 fragmentDetails.child(unlocked);
 
-                fragmentDetails.child(Components.button(Text.of("Remove Fragment"), button -> {
+                fragmentDetails.child(button(Text.of("Remove Fragment"), button -> {
                     expandedFragments.remove(fragment);
                     config.getMemoryFragments().remove(fragmentIndex);
                     renderFragments(fragmentList);

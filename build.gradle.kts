@@ -6,7 +6,7 @@ import org.gradle.kotlin.dsl.named
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("fabric-loom") version "1.13.6"
+    id("fabric-loom") version "1.15.3"
     kotlin("jvm") version "2.1.0"
     id("maven-publish")
     id("me.modmuss50.mod-publish-plugin") version "0.8.1"
