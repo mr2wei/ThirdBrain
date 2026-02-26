@@ -129,5 +129,10 @@ This project utilizes components from the following projects:
 - [fabric-carpet](https://github.com/gnembon/fabric-carpet)
 - [automatone](https://github.com/Ladysnake/Automatone)
 - [player2](https://player2.game)
+- [SecondBrain](https://github.com/sailex428/secondbrain)
 
 Thank you to the developers of these projects for their amazing work!
+
+## Author admissions
+- I highkey vibe coded all my changes sorry
+- shoutout codex 5.3
