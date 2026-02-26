@@ -1,30 +1,38 @@
-# Changelog
+## Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this release.
 
-## [3.1.5] - 2025-12-06
+## [4.0.0] - 2026-02-25
 
 ### 🚀 Features
+- Added memory fragments for NPCs.
+- Added per-NPC conversation range controls.
+- Split zone behavior editing into a dedicated NPC zone config screen.
+- Added new NPC commands for memory management and unlock flow.
+- Improved NPC context/history handling for more consistent behavior.
+- Added skin selector within npc creation and edit gui
+- Added OpenAI TTS and carousel for selecting TTS voice
+- Updated instructions to focus less on player companionship, rather in world NPCs
 
-- Use llama3.2 as default model
-
-### 🐛 Bug Fixes
-
-- Query does not returns results error
-- Parsing error using smaller models
-
-### 💼 Other
-
-- Add mcVersion to display name of gh release
-- Optimizations for small models
+### 🛠 Bug Fixes / Improvements
+- Improved OpenAI/Ollama client handling and runtime reliability.
+- Improved NPC config serialization/loading behavior.
+- Updated config/network handling to better support runtime updates.
+- Refined UI flow for NPC/base config screens.
+- Many QoL improvements such as:
+    - Persistent entries per NPC
+    - Global API Key input and Ollama/OpenAI endpoint URL
+    - Maybe more, I forgor 💀
 
 ### 📚 Documentation
+- Updated README to reflect ThirdBrain positioning and workflow.
+- Added notes on tested providers and current testing scope.
 
-- Update changelog for version 3.1.4
-- Update changelog for version 3.1.5
+### ⚙️ Misc
+- Added `com.openai:openai-java:4.22.0`.
+- Bumped version from `3.1.5` to `4.0.0`.
 
-### ⚙️ Miscellaneous Tasks
-
-- Bump version
-
-
+### ⚠️ Warning
+- I did not test if existing NPCs will transfer gracefully
+- At best, you only need to re enter Ollama URL, OpenAI URL, OpenAI API key
+- At worst, everything is reset
