@@ -54,7 +54,13 @@ class NPCEventHandler(
             val formattedPrompt: String = PromptFormatter.format(zoneAwarePrompt, worldContext)
 
             history.add(Message(formattedPrompt, Player2ChatRole.USER.toString().lowercase()))
-            val response = llmClient.chat(history.latestConversations)
+            val systemPrompt = Instructions.getLlmSystemPrompt(
+                config.npcName,
+                config.getEffectiveLlmCharacter(),
+                controller.commandExecutor.allCommands(),
+                config.llmType
+            )
+            val response = llmClient.chat(history.buildMessagesForApi(systemPrompt))
             history.add(response)
 
             val parsedMessage = parse(response.message)

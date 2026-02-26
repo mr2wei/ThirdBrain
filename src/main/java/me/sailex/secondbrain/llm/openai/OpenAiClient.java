@@ -2,7 +2,9 @@ package me.sailex.secondbrain.llm.openai;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
 import com.openai.core.http.HttpResponse;
+import com.openai.models.ResponseFormatJsonSchema;
 import com.openai.models.audio.speech.SpeechCreateParams;
 import com.openai.models.audio.speech.SpeechModel;
 import com.openai.models.chat.completions.ChatCompletion;
@@ -22,6 +24,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class OpenAiClient implements LLMClient {
 
@@ -29,6 +32,21 @@ public class OpenAiClient implements LLMClient {
 	private final String openAiModel;
     private final String voiceId;
     private final List<SourceDataLine> activeLines = Collections.synchronizedList(new ArrayList<>());
+    private static final ResponseFormatJsonSchema NPC_COMMAND_RESPONSE_FORMAT = ResponseFormatJsonSchema.builder()
+            .jsonSchema(ResponseFormatJsonSchema.JsonSchema.builder()
+                    .name("npc_command_message")
+                    .strict(true)
+                    .schema(ResponseFormatJsonSchema.JsonSchema.Schema.builder()
+                            .putAdditionalProperty("type", JsonValue.from("object"))
+                            .putAdditionalProperty("additionalProperties", JsonValue.from(false))
+                            .putAdditionalProperty("properties", JsonValue.from(Map.of(
+                                    "command", Map.of("type", "string"),
+                                    "message", Map.of("type", "string", "maxLength", 250)
+                            )))
+                            .putAdditionalProperty("required", JsonValue.from(List.of("command", "message")))
+                            .build())
+                    .build())
+            .build();
 
 	/**
 	 * Constructor for OpenAiClient.
@@ -52,6 +70,9 @@ public class OpenAiClient implements LLMClient {
                     .model(openAiModel);
             for (Message message : messages) {
                 addMessage(requestBuilder, message);
+            }
+            if (shouldForceCommandJson(messages)) {
+                requestBuilder.responseFormat(NPC_COMMAND_RESPONSE_FORMAT);
             }
 
             ChatCompletion response = openAiService.chat().completions().create(requestBuilder.build());
@@ -146,6 +167,27 @@ public class OpenAiClient implements LLMClient {
         } else {
             builder.addUserMessage(message.getMessage());
         }
+    }
+
+    private static boolean shouldForceCommandJson(List<Message> messages) {
+        for (Message message : messages) {
+            if (message == null || message.getMessage() == null) {
+                continue;
+            }
+            String role = message.getRole() == null ? "" : message.getRole().trim().toLowerCase();
+            if (!"system".equals(role)) {
+                continue;
+            }
+            String content = message.getMessage();
+            boolean containsOutputShape = content.contains("\"command\"") && content.contains("\"message\"");
+            boolean containsCommandInstructions = content.contains("VALID COMMANDS")
+                    || content.contains("Respond ONLY with a single valid JSON object")
+                    || content.contains("FINAL REMINDER: Output ONLY the JSON object");
+            if (containsOutputShape && containsCommandInstructions) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static SpeechCreateParams.Voice resolveVoice(String selectedVoiceId) {

@@ -4,7 +4,6 @@ import me.sailex.altoclef.AltoClefController
 import me.sailex.automatone.api.BaritoneAPI
 import me.sailex.secondbrain.config.ConfigProvider
 import me.sailex.secondbrain.config.NPCConfig
-import me.sailex.secondbrain.constant.Instructions
 import me.sailex.secondbrain.context.ContextProvider
 import me.sailex.secondbrain.event.NPCEventHandler
 import me.sailex.secondbrain.exception.NPCCreationException
@@ -24,20 +23,18 @@ class NPCFactory(
 ) {
      fun createNpc(npcEntity: ServerPlayerEntity, config: NPCConfig, loadedConversation: List<Conversation>?): NPC {
         val baseConfig = configProvider.baseConfig
-        val contextProvider = ContextProvider(npcEntity, baseConfig)
+        val conversationRange = resolveConversationRangeInBlocks(config)
+        val contextProvider = ContextProvider(npcEntity, baseConfig, conversationRange)
 
         val llmClient = initLLMClient(config)
 
         val controller = initController(npcEntity)
-        val defaultPrompt = Instructions.getLlmSystemPrompt(config.npcName,
-            config.llmCharacter,
-            controller.commandExecutor.allCommands(),
-            config.llmType)
 
         val messages = loadedConversation
+            ?.filter { !it.role.equals("system", ignoreCase = true) }
             ?.map { Message(it.message, it.role) }
             ?.toMutableList() ?: mutableListOf()
-        val history = ConversationHistory(llmClient, defaultPrompt, messages)
+        val history = ConversationHistory(llmClient, messages)
         val eventHandler = NPCEventHandler(llmClient, history, contextProvider, controller, config)
         return NPC(npcEntity, llmClient, history, eventHandler, controller, contextProvider, config)
     }
@@ -57,6 +54,10 @@ class NPCFactory(
         }
         llmClient.checkServiceIsReachable()
         return llmClient
+    }
+
+    private fun resolveConversationRangeInBlocks(npcConfig: NPCConfig): Int {
+        return npcConfig.conversationRange
     }
 
 }

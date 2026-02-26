@@ -26,6 +26,8 @@ public class CommandManager {
 			dispatcher.register(literal("secondbrain")
 					.requires(source -> source.hasPermissionLevel(2))
 					.then(new NPCCreateCommand(npcService).getCommand())
+					.then(new NPCUnlockCommand(npcService, configProvider).getCommand())
+					.then(new NPCMemoryCommand(npcService, configProvider).getCommand())
 					.then(new NPCRemoveCommand(npcService, configProvider).getCommand())
 					.then(new Player2ActionCommand(synchronizer).getCommand())
 					.executes(context -> new GuiCommand(configProvider, networkHandler).execute(context))

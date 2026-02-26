@@ -22,6 +22,7 @@ import static me.sailex.secondbrain.util.MCDataUtil.getToolNeeded;
 public class ChunkManager {
 
     private final int verticalScanRange;
+    private final int contextRangeInBlocks;
     private final int chunkRadius;
 
     private final ServerPlayerEntity npcEntity;
@@ -33,12 +34,22 @@ public class ChunkManager {
 
 
     public ChunkManager(ServerPlayerEntity npcEntity, BaseConfig config) {
+        this(
+            npcEntity,
+            Math.max(1, config.getContextChunkRadius()) * 16,
+            config.getContextVerticalScanRange(),
+            config.getChunkExpiryTime()
+        );
+    }
+
+    public ChunkManager(ServerPlayerEntity npcEntity, int contextRangeInBlocks, int verticalScanRange, int chunkExpiryTime) {
         this.npcEntity = npcEntity;
-        this.verticalScanRange = config.getContextVerticalScanRange();
-        this.chunkRadius = config.getContextChunkRadius();
+        this.verticalScanRange = verticalScanRange;
+        this.contextRangeInBlocks = Math.max(1, contextRangeInBlocks);
+        this.chunkRadius = (this.contextRangeInBlocks - 1) / 16 + 1;
         this.currentLoadedBlocks = new ArrayList<>();
         this.threadPool = Executors.newSingleThreadScheduledExecutor();
-        scheduleRefreshBlocks(config.getChunkExpiryTime());
+        scheduleRefreshBlocks(chunkExpiryTime);
     }
 
     private void scheduleRefreshBlocks(int chunkExpiryTime) {
@@ -90,6 +101,8 @@ public class ChunkManager {
         currentLoadedBlocks.clear();
         World world = EntityVer.getWorld(npcEntity);
         ChunkPos centerChunk = npcEntity.getChunkPos();
+        int centerX = npcEntity.getBlockPos().getX();
+        int centerZ = npcEntity.getBlockPos().getZ();
 
         for (int x = -chunkRadius; x <= chunkRadius; x++) {
             for (int z = -chunkRadius; z <= chunkRadius; z++) {
@@ -98,13 +111,13 @@ public class ChunkManager {
                 boolean isLoaded = world.isChunkLoaded(pos.x, pos.z);
 
                 if (isLoaded) {
-                    currentLoadedBlocks.addAll(scanChunk(pos));
+                    currentLoadedBlocks.addAll(scanChunk(pos, centerX, centerZ));
                 }
             }
         }
     }
 
-    private List<BlockData> scanChunk(ChunkPos chunk) {
+    private List<BlockData> scanChunk(ChunkPos chunk, int centerX, int centerZ) {
         World world = EntityVer.getWorld(npcEntity);
         BlockPos.Mutable pos = new BlockPos.Mutable();
         int baseY = Math.max(0, npcEntity.getBlockPos().getY() - verticalScanRange);
@@ -114,8 +127,15 @@ public class ChunkManager {
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
+                int blockX = chunk.getStartX() + x;
+                int blockZ = chunk.getStartZ() + z;
+
+                if (Math.abs(blockX - centerX) > contextRangeInBlocks || Math.abs(blockZ - centerZ) > contextRangeInBlocks) {
+                    continue;
+                }
+
                 for (int y = baseY; y < maxY; y++) {
-                    pos.set(chunk.getStartX() + x, y, chunk.getStartZ() + z);
+                    pos.set(blockX, y, blockZ);
                     WorldChunk currentChunk = world.getWorldChunk(pos);
 
                     BlockState blockState = currentChunk.getBlockState(pos);

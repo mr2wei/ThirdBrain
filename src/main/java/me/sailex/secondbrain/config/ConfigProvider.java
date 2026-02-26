@@ -54,11 +54,15 @@ public class ConfigProvider {
         }
     }
 
-    public void saveAll() {
+	public void saveAll() {
         save(BASE_CONFIG_DIR, baseConfig);
         npcConfigs.forEach(config -> save(NPC_CONFIG_DIR, config));
         LogUtil.info("Saved all configs");
     }
+
+	public synchronized void saveNpcConfig(NPCConfig npcConfig) {
+		save(NPC_CONFIG_DIR, npcConfig);
+	}
 
     private synchronized void save(Path dir, Configurable config) {
         Path configPath = dir.resolve(config.getConfigName() + JSON_EXTENSION);

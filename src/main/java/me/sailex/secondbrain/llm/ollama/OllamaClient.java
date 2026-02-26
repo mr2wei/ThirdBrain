@@ -58,16 +58,46 @@ public class OllamaClient implements LLMClient {
 	@Override
 	public Message chat(List<Message> messages) {
 		try {
-			List<OllamaChatMessage> response = ollamaAPI.chat(model,
-                    messages.stream()
+            List<OllamaChatMessage> chatMessages = messages.stream()
                     .map(MessageConverter::toOllamaChatMessage)
-                    .collect(Collectors.toList())
-            ).getChatHistory();
+                    .collect(Collectors.toList());
+            OllamaChatResult chatResult;
+            if (shouldForceCommandJson(messages)) {
+                OllamaChatRequest request = OllamaChatRequestBuilder.getInstance(model)
+                        .withMessages(chatMessages)
+                        .withGetJsonResponse()
+                        .build();
+                chatResult = ollamaAPI.chat(request);
+            } else {
+                chatResult = ollamaAPI.chat(model, chatMessages);
+            }
+			List<OllamaChatMessage> response = chatResult.getChatHistory();
             return MessageConverter.toMessage(response.get(response.size() - 1));
 		} catch (Exception e) {
             throw new LLMServiceException("Could not generate Response for last prompt: " + messages.get(messages.size() - 1).getMessage(), e);
 		}
 	}
+
+    private static boolean shouldForceCommandJson(List<Message> messages) {
+        for (Message message : messages) {
+            if (message == null || message.getMessage() == null) {
+                continue;
+            }
+            String role = message.getRole() == null ? "" : message.getRole().trim().toLowerCase();
+            if (!"system".equals(role)) {
+                continue;
+            }
+            String content = message.getMessage();
+            boolean containsOutputShape = content.contains("\"command\"") && content.contains("\"message\"");
+            boolean containsCommandInstructions = content.contains("VALID COMMANDS")
+                    || content.contains("Respond ONLY with a single valid JSON object")
+                    || content.contains("FINAL REMINDER: Output ONLY the JSON object");
+            if (containsOutputShape && containsCommandInstructions) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 //    private void initModels(String defaultPrompt) {
 //        pullRequiredModels();

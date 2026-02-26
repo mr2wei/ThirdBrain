@@ -20,8 +20,12 @@ public class ContextProvider {
 	private WorldContext cachedContext;
 
 	public ContextProvider(ServerPlayerEntity npcEntity, BaseConfig config) {
+		this(npcEntity, config, Math.max(1, config.getContextChunkRadius()) * 16);
+	}
+
+	public ContextProvider(ServerPlayerEntity npcEntity, BaseConfig config, int contextRangeInBlocks) {
 		this.npcEntity = npcEntity;
-		this.chunkManager = new ChunkManager(npcEntity, config);
+		this.chunkManager = new ChunkManager(npcEntity, Math.max(1, contextRangeInBlocks), config.getContextVerticalScanRange(), config.getChunkExpiryTime());
 		buildContext();
 	}
 

@@ -1,7 +1,6 @@
 package me.sailex.secondbrain.client.gui.screen;
 
 import io.wispforest.owo.ui.component.*;
-import io.wispforest.owo.ui.container.CollapsibleContainer;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 
@@ -15,10 +14,8 @@ import me.sailex.secondbrain.networking.packet.UpdateNpcConfigPacket;
 
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.IntConsumer;
 
 import static me.sailex.secondbrain.SecondBrain.MOD_ID;
 
@@ -29,8 +26,8 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
     private static final int HALF_INPUT_WIDTH = 24;
     private static final int SINGLE_LINE_INPUT_HEIGHT = 9;
     private static final int CHARACTER_INPUT_HEIGHT = 30;
-    private static final int ZONE_INSTRUCTIONS_HEIGHT = 22;
-    private static final int INTEGER_INPUT_WIDTH = 38;
+    private static final int MIN_CONVERSATION_RANGE = 2;
+    private static final int MAX_CONVERSATION_RANGE = 64;
     private static final List<SkinOption> SKIN_OPTIONS = List.of(
             new SkinOption("Random", ""),
             new SkinOption("Steve", "https://minecraft.wiki/Special:FilePath/Char.png"),
@@ -56,8 +53,6 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
             new VoiceOption("Cedar", "cedar")
     );
     private final List<NPCConfig> existingConfigs;
-    private final List<Boolean> zoneExpandedState = new ArrayList<>();
-    private FlowLayout zoneBehaviourSection;
 
     public NPCConfigScreen(
         ClientNetworkManager networkManager,
@@ -85,6 +80,7 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
             panel.childById(FlowLayout.class, "npcName").child(npcName);
         }
 
+        drawConversationRangeSection(panel);
         drawLLMTypeDropDown(panel);
         drawLLMModelInput(panel);
 
@@ -124,18 +120,25 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
                 .subscribe(config::setLlmCharacter);
         llmInfo.child(llmCharacter);
 
-        drawZoneSpecificBehaviourEditor(panel, llmInfo);
+        drawZoneSpecificBehaviourButton(llmInfo);
         drawSkinSelector(llmInfo);
         if (config.getLlmType() == LLMType.OPENAI) {
             drawOpenAiVoiceSelector(llmInfo);
         }
     }
 
-    private void drawZoneSpecificBehaviourEditor(FlowLayout panel, FlowLayout llmInfo) {
-        zoneBehaviourSection = Containers.verticalFlow(Sizing.content(), Sizing.content());
-        zoneBehaviourSection.gap(4);
-        llmInfo.child(zoneBehaviourSection);
-        renderZoneSpecificBehaviourSection(panel);
+    private void drawConversationRangeSection(FlowLayout panel) {
+        panel.childById(LabelComponent.class, "conversationRange-label")
+                .text(Text.of(NPCConfig.CONVERSATION_RANGE));
+
+        DiscreteSliderComponent conversationRangeSlider = panel.childById(DiscreteSliderComponent.class, "conversationRangeSlider");
+        conversationRangeSlider
+                .setFromDiscreteValue(Math.max(MIN_CONVERSATION_RANGE,
+                        Math.min(MAX_CONVERSATION_RANGE, config.getConversationRange())));
+
+        conversationRangeSlider
+                .onChanged()
+                .subscribe(value -> config.setConversationRange((int) Math.round(value)));
     }
 
     private CheckboxComponent buildUseTtsCheckbox() {
@@ -144,132 +147,12 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
                 .onChanged(listener -> config.setTTS(!config.isTTS()));
     }
 
-    private void renderZoneSpecificBehaviourSection(FlowLayout panel) {
-        if (zoneBehaviourSection == null) {
-            return;
-        }
-        zoneBehaviourSection.clearChildren();
-        zoneBehaviourSection.child(Components.label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
-
-        FlowLayout zoneList = Containers.verticalFlow(Sizing.content(), Sizing.content());
-        zoneList.gap(6);
-
-        List<NPCConfig.ZoneBehavior> zoneBehaviors = config.getZoneBehaviors();
-        syncZoneExpandedState(zoneBehaviors.size());
-        for (int i = 0; i < zoneBehaviors.size(); i++) {
-            zoneList.child(buildZoneCollapsible(panel, zoneBehaviors.get(i), i));
-        }
-        zoneBehaviourSection.child(zoneList);
-
-        zoneBehaviourSection.child(Components.button(Text.of(NPCConfig.ADD_ZONE), button -> {
-            int nextZoneNumber = config.getZoneBehaviors().size() + 1;
-            config.getZoneBehaviors().add(new NPCConfig.ZoneBehavior(
-                    "Zone " + nextZoneNumber,
-                    new NPCConfig.ZoneCoordinate(0, 0, 0),
-                    new NPCConfig.ZoneCoordinate(0, 0, 0),
-                    0,
-                    ""
-            ));
-            zoneExpandedState.add(true);
-            renderZoneSpecificBehaviourSection(panel);
-        }));
-    }
-
-    private CollapsibleContainer buildZoneCollapsible(FlowLayout panel, NPCConfig.ZoneBehavior zone, int zoneIndex) {
-        CollapsibleContainer collapsible = Containers.collapsible(
-                Sizing.fill(WIDE_INPUT_WIDTH),
-                Sizing.content(),
-                Text.of(buildZoneTitle(zone, zoneIndex)),
-                zoneExpandedState.get(zoneIndex)
-        );
-        collapsible.gap(4);
-        collapsible.onToggled().subscribe(nowExpanded -> zoneExpandedState.set(zoneIndex, nowExpanded));
-
-        FlowLayout zoneEditor = buildZoneEditor(panel, zone, zoneIndex);
-        collapsible.child(zoneEditor);
-        return collapsible;
-    }
-
-    private FlowLayout buildZoneEditor(FlowLayout panel, NPCConfig.ZoneBehavior zone, int zoneIndex) {
-        FlowLayout zoneEditor = Containers.verticalFlow(Sizing.content(), Sizing.content());
-        zoneEditor.gap(5);
-
-        zoneEditor.child(Components.label(Text.of("Name")).shadow(true));
-        TextAreaComponent zoneNameInput = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
-                .text(zone.getName());
-        zoneNameInput.onChanged().subscribe(zone::setName);
-        zoneEditor.child(zoneNameInput);
-
-        zoneEditor.child(Components.label(Text.of("Priority")).shadow(true));
-        zoneEditor.child(createIntegerInput(zone.getPriority(), zone::setPriority));
-
-        zoneEditor.child(Components.label(Text.of("From (x, y, z)")).shadow(true));
-        zoneEditor.child(createCoordinateEditor(zone.getFrom()));
-
-        zoneEditor.child(Components.label(Text.of("To (x, y, z)")).shadow(true));
-        zoneEditor.child(createCoordinateEditor(zone.getTo()));
-
-        zoneEditor.child(Components.label(Text.of("Extra Instructions")).shadow(true));
-        TextAreaComponent instructionsInput = Components.textArea(Sizing.fill(WIDE_INPUT_WIDTH), Sizing.fill(ZONE_INSTRUCTIONS_HEIGHT))
-                .text(zone.getInstructions());
-        instructionsInput.onChanged().subscribe(zone::setInstructions);
-        zoneEditor.child(instructionsInput);
-
-        zoneEditor.child(Components.button(Text.of("Remove Zone"), button -> {
-            config.getZoneBehaviors().remove(zoneIndex);
-            zoneExpandedState.remove(zoneIndex);
-            renderZoneSpecificBehaviourSection(panel);
-        }));
-        return zoneEditor;
-    }
-
-    private String buildZoneTitle(NPCConfig.ZoneBehavior zone, int zoneIndex) {
-        int zoneNumber = zoneIndex + 1;
-        String displayName = zone.getName() == null || zone.getName().isBlank()
-                ? "Zone " + zoneNumber
-                : zone.getName();
-        return "Zone " + zoneNumber + " - " + displayName + " (Priority " + zone.getPriority() + ")";
-    }
-
-    private void syncZoneExpandedState(int zoneCount) {
-        while (zoneExpandedState.size() < zoneCount) {
-            zoneExpandedState.add(false);
-        }
-        while (zoneExpandedState.size() > zoneCount) {
-            zoneExpandedState.remove(zoneExpandedState.size() - 1);
-        }
-    }
-
-    private FlowLayout createCoordinateEditor(NPCConfig.ZoneCoordinate coordinate) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-        row.gap(4);
-        row.child(Components.label(Text.of("x")).shadow(true));
-        row.child(createIntegerInput(coordinate.getX(), coordinate::setX));
-        row.child(Components.label(Text.of("y")).shadow(true));
-        row.child(createIntegerInput(coordinate.getY(), coordinate::setY));
-        row.child(Components.label(Text.of("z")).shadow(true));
-        row.child(createIntegerInput(coordinate.getZ(), coordinate::setZ));
-        return row;
-    }
-
-    private TextAreaComponent createIntegerInput(int currentValue, IntConsumer setter) {
-        TextAreaComponent input = Components.textArea(Sizing.fixed(INTEGER_INPUT_WIDTH), Sizing.fill(SINGLE_LINE_INPUT_HEIGHT))
-                .text(String.valueOf(currentValue));
-        input.onChanged().subscribe(value -> {
-            Integer parsed = parseInteger(value);
-            if (parsed != null) {
-                setter.accept(parsed);
-            }
-        });
-        return input;
-    }
-
-    private Integer parseInteger(String value) {
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
+    private void drawZoneSpecificBehaviourButton(FlowLayout llmInfo) {
+        llmInfo.child(Components.label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
+        llmInfo.child(Components.button(
+                Text.of("Open Zones (" + config.getZoneBehaviors().size() + ")"),
+                button -> client.setScreen(new NPCZoneBehaviorScreen(networkManager, config, isEdit, existingConfigs))
+        ).sizing(Sizing.fill(HALF_INPUT_WIDTH), Sizing.content()));
     }
 
     private void drawLLMTypeDropDown(FlowLayout panel) {

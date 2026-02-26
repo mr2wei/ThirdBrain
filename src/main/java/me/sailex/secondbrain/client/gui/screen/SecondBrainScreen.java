@@ -54,7 +54,7 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
     }
 
     private void addNpcComponent(FlowLayout panelComponent, NPCConfig config) {
-        FlowLayout npcContainer = Containers.verticalFlow(Sizing.fixed(139), Sizing.content());
+        FlowLayout npcContainer = Containers.verticalFlow(Sizing.fixed(280), Sizing.content());
         npcContainer.margins(Insets.bottom(1));
         npcContainer.surface(Surface.DARK_PANEL).padding(Insets.of(10));
 
@@ -69,6 +69,8 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
 
         addNpcSpawnButton(npcButtonContainer, config);
         addNpcEditButton(npcButtonContainer, config);
+        addNpcZonesButton(npcButtonContainer, config);
+        addNpcFragmentsButton(npcButtonContainer, config);
         addNpcDeleteButton(npcButtonContainer, config);
 
         npcContainer.child(npcButtonContainer);
@@ -100,6 +102,18 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
     private void addNpcEditButton(FlowLayout npcButtonContainer, NPCConfig config) {
         npcButtonContainer.child(Components.button(Text.of("Edit"), button ->
                 client.setScreen(new NPCConfigScreen(networkManager, config, true, npcConfig))
+        ));
+    }
+
+    private void addNpcFragmentsButton(FlowLayout npcButtonContainer, NPCConfig config) {
+        npcButtonContainer.child(Components.button(Text.of("Fragments"), button ->
+                client.setScreen(new NPCMemoryFragmentsScreen(networkManager, config, this))
+        ));
+    }
+
+    private void addNpcZonesButton(FlowLayout npcButtonContainer, NPCConfig config) {
+        npcButtonContainer.child(Components.button(Text.of("Zones"), button ->
+                client.setScreen(new NPCZoneBehaviorScreen(networkManager, config, npcConfig, baseConfig))
         ));
     }
 

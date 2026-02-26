@@ -7,6 +7,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -21,9 +22,11 @@ public class NPCConfig implements Configurable {
 	private boolean isActive = true;
 	private String llmCharacter = Instructions.DEFAULT_CHARACTER_TRAITS;
 	private LLMType llmType = LLMType.OLLAMA;
-    private String llmModel = "llama3.2";
+	private String llmModel = "llama3.2";
 	private String voiceId = "not set";
 	private String skinUrl = "";
+	private int conversationRange = 64;
+	private List<MemoryFragment> memoryFragments = new ArrayList<>();
 	private List<ZoneBehavior> zoneBehaviors = new ArrayList<>();
 
 	private boolean isTTS = false;
@@ -34,7 +37,7 @@ public class NPCConfig implements Configurable {
 		this.npcName = npcName;
 	}
 
-    public NPCConfig(
+	public NPCConfig(
 		String npcName,
 		String uuid,
 		boolean isActive,
@@ -44,6 +47,8 @@ public class NPCConfig implements Configurable {
 		boolean isTTS,
 		String voiceId,
 		String skinUrl,
+		int conversationRange,
+		List<MemoryFragment> memoryFragments,
 		List<ZoneBehavior> zoneBehaviors
 	) {
 		this.npcName = npcName;
@@ -55,6 +60,8 @@ public class NPCConfig implements Configurable {
 		this.isTTS = isTTS;
 		this.voiceId = voiceId;
 		this.skinUrl = skinUrl;
+		setConversationRange(conversationRange);
+		setMemoryFragments(memoryFragments);
 		setZoneBehaviors(zoneBehaviors);
 	}
 
@@ -117,9 +124,51 @@ public class NPCConfig implements Configurable {
 		return llmType;
 	}
 
-    public String getLlmModel() {
+	public String getLlmModel() {
         return llmModel;
     }
+
+	public String getEffectiveLlmCharacter() {
+		StringBuilder effectivePrompt = new StringBuilder(llmCharacter == null ? "" : llmCharacter);
+		String unlockedMemoryPrompt = buildUnlockedMemoryPrompt();
+		if (!unlockedMemoryPrompt.isBlank()) {
+			effectivePrompt.append("\n\n").append(unlockedMemoryPrompt);
+		}
+		return effectivePrompt.toString();
+	}
+
+	public Optional<MemoryFragment> getMemoryFragment(String memoryId) {
+		if (memoryId == null || memoryId.isBlank()) {
+			return Optional.empty();
+		}
+		return getMemoryFragments().stream()
+				.filter(fragment -> fragment.getId().equalsIgnoreCase(memoryId.trim()))
+				.findFirst();
+	}
+
+	public String buildUnlockedMemoryPrompt() {
+		StringBuilder unlockedFragments = new StringBuilder("Unlocked memory fragments:\n");
+		getMemoryFragments().stream()
+				.filter(MemoryFragment::isUnlocked)
+				.forEach(fragment -> unlockedFragments
+						.append(" - ").append(fragment.toSystemPrompt())
+						.append("\n"));
+		if (unlockedFragments.toString().equals("Unlocked memory fragments:\n")) {
+			return "";
+		}
+		return unlockedFragments.toString().trim();
+	}
+
+	public List<MemoryFragment> getMemoryFragments() {
+		if (memoryFragments == null) {
+			memoryFragments = new ArrayList<>();
+		}
+		return memoryFragments;
+	}
+
+	public void setMemoryFragments(List<MemoryFragment> memoryFragments) {
+		this.memoryFragments = memoryFragments == null ? new ArrayList<>() : new ArrayList<>(memoryFragments);
+	}
 
     public void setLlmModel(String llmModel) {
         this.llmModel = llmModel;
@@ -174,6 +223,14 @@ public class NPCConfig implements Configurable {
 		this.skinUrl = skinUrl;
 	}
 
+	public int getConversationRange() {
+		return conversationRange;
+	}
+
+	public void setConversationRange(int conversationRange) {
+		this.conversationRange = Math.max(2, Math.min(64, conversationRange));
+	}
+
 	public List<ZoneBehavior> getZoneBehaviors() {
 		if (zoneBehaviors == null) {
 			zoneBehaviors = new ArrayList<>();
@@ -201,6 +258,8 @@ public class NPCConfig implements Configurable {
 			Endec.BOOLEAN.fieldOf("isTTS", NPCConfig::isTTS),
 			Endec.STRING.fieldOf("voiceId", NPCConfig::getVoiceId),
 			Endec.STRING.fieldOf("skinUrl", NPCConfig::getSkinUrl),
+			Endec.INT.fieldOf("conversationRange", NPCConfig::getConversationRange),
+			MemoryFragment.ENDEC.listOf().fieldOf("memoryFragments", NPCConfig::getMemoryFragments),
 			ZoneBehavior.ENDEC.listOf().fieldOf("zoneBehaviors", NPCConfig::getZoneBehaviors),
 			NPCConfig::new
 	);
@@ -216,9 +275,26 @@ public class NPCConfig implements Configurable {
                 config.isTTS,
                 config.voiceId,
                 config.skinUrl,
+				config.conversationRange,
+				deepCopyMemoryFragments(config.getMemoryFragments()),
 				deepCopyZoneBehaviors(config.getZoneBehaviors())
         );
     }
+
+	private static List<MemoryFragment> deepCopyMemoryFragments(List<MemoryFragment> memoryFragments) {
+		if (memoryFragments == null || memoryFragments.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<MemoryFragment> copied = new ArrayList<>();
+		for (MemoryFragment memoryFragment : memoryFragments) {
+			copied.add(new MemoryFragment(
+					memoryFragment.getId(),
+					memoryFragment.getPrompt(),
+					memoryFragment.isUnlocked()
+			));
+		}
+		return copied;
+	}
 
 	private static List<ZoneBehavior> deepCopyZoneBehaviors(List<ZoneBehavior> zoneBehaviors) {
 		if (zoneBehaviors == null || zoneBehaviors.isEmpty()) {
@@ -252,8 +328,85 @@ public class NPCConfig implements Configurable {
 				",isActive=" + isActive +
 				",llmType=" + llmType +
 				",llmCharacter=" + llmCharacter +
+				",memoryFragments=" + getMemoryFragments().size() +
+				",conversationRange=" + conversationRange +
 				",voiceId=" + voiceId +
 				",zoneBehaviorCount=" + getZoneBehaviors().size() + "}";
+	}
+
+	public static class MemoryFragment {
+		private String id = "memory_id";
+		private String prompt = "";
+		private boolean unlocked = false;
+
+		public MemoryFragment() {}
+
+		public MemoryFragment(
+				String id,
+				String prompt,
+				boolean unlocked
+		) {
+			this.id = id == null ? "memory_id" : id;
+			this.prompt = prompt == null ? "" : prompt;
+			this.unlocked = unlocked;
+		}
+
+		public String getId() {
+			return id;
+		}
+
+		public void setId(String id) {
+			this.id = id == null ? "memory_id" : id;
+		}
+
+		public String getPrompt() {
+			return prompt;
+		}
+
+		public void setPrompt(String prompt) {
+			this.prompt = prompt == null ? "" : prompt;
+		}
+
+		public boolean isUnlocked() {
+			return unlocked;
+		}
+
+		public void setUnlocked(boolean unlocked) {
+			this.unlocked = unlocked;
+		}
+
+		public String toSystemPrompt() {
+			StringBuilder systemPrompt = new StringBuilder(getId());
+			if (!getPrompt().isBlank()) {
+				systemPrompt.append(": ").append(getPrompt());
+			}
+			return systemPrompt.toString();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof MemoryFragment other)) {
+				return false;
+			}
+			return unlocked == other.unlocked &&
+					Objects.equals(id, other.id) &&
+					Objects.equals(prompt, other.prompt);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(id, prompt, unlocked);
+		}
+
+		public static final StructEndec<MemoryFragment> ENDEC = StructEndecBuilder.of(
+				Endec.STRING.fieldOf("id", MemoryFragment::getId),
+				Endec.STRING.fieldOf("prompt", MemoryFragment::getPrompt),
+				Endec.BOOLEAN.fieldOf("unlocked", MemoryFragment::isUnlocked),
+				MemoryFragment::new
+		);
 	}
 
 	//name for fields for npc config screen
@@ -263,6 +416,7 @@ public class NPCConfig implements Configurable {
 	public static final String LLM_TYPE = "Type";
 	public static final String LLM_MODEL = "LLM Model";
 	public static final String IS_TTS = "Text to Speech";
+	public static final String CONVERSATION_RANGE = "Conversation Range (blocks)";
 	public static final String ZONE_SPECIFIC_BEHAVIOUR = "Zone Specific Behaviour";
 	public static final String ADD_ZONE = "+ Add Zone";
 

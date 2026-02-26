@@ -64,6 +64,66 @@ class NPCService(
         }
     }
 
+fun unlockMemoryForNpc(npcName: String, memoryId: String): MemoryUnlockStatus {
+		val configResult = configProvider.getNpcConfigByName(npcName)
+		if (configResult.isEmpty) {
+			return MemoryUnlockStatus.NPC_NOT_FOUND
+		}
+
+		val config = configResult.get()
+		val memoryOpt = config.getMemoryFragment(memoryId)
+		if (memoryOpt.isEmpty) {
+			return MemoryUnlockStatus.MEMORY_NOT_FOUND
+		}
+		val memory = memoryOpt.get()
+		if (memory.isUnlocked) {
+			return MemoryUnlockStatus.ALREADY_UNLOCKED
+		}
+
+		memory.isUnlocked = true
+		configProvider.saveNpcConfig(config)
+		return MemoryUnlockStatus.SUCCESS
+	}
+
+	fun createMemoryForNpc(
+		npcName: String,
+		memoryPrompt: String
+	): MemoryCreateResult {
+		val normalizedPrompt = memoryPrompt.trim()
+		if (normalizedPrompt.isBlank()) {
+			return MemoryCreateResult(MemoryCreateStatus.INVALID_INPUT)
+		}
+
+		val configResult = configProvider.getNpcConfigByName(npcName)
+		if (configResult.isEmpty) {
+			return MemoryCreateResult(MemoryCreateStatus.NPC_NOT_FOUND)
+		}
+
+		val config = configResult.get()
+		val generatedMemoryId = generateNextMemoryId(config)
+		val memoryOpt = config.getMemoryFragment(generatedMemoryId)
+		if (memoryOpt.isPresent) {
+			return MemoryCreateResult(MemoryCreateStatus.MEMORY_ID_ALREADY_EXISTS, generatedMemoryId)
+		}
+
+		val newMemory = NPCConfig.MemoryFragment(
+				generatedMemoryId,
+				normalizedPrompt,
+				true
+		)
+		config.getMemoryFragments().add(newMemory)
+		configProvider.saveNpcConfig(config)
+		return MemoryCreateResult(MemoryCreateStatus.SUCCESS, generatedMemoryId)
+	}
+
+	private fun generateNextMemoryId(config: NPCConfig): String {
+		var nextId = 1
+		while (config.getMemoryFragment("memory_" + nextId).isPresent) {
+			nextId++
+		}
+		return "memory_" + nextId
+	}
+
     fun removeNpc(uuid: UUID, playerManager: PlayerManager) {
         val npcToRemove = uuidToNpc[uuid]
         if (npcToRemove != null) {
@@ -132,4 +192,22 @@ class NPCService(
         }
     }
 
+	enum class MemoryUnlockStatus {
+		SUCCESS,
+		NPC_NOT_FOUND,
+		MEMORY_NOT_FOUND,
+		ALREADY_UNLOCKED
+	}
+
+	enum class MemoryCreateStatus {
+		SUCCESS,
+		NPC_NOT_FOUND,
+		INVALID_INPUT,
+		MEMORY_ID_ALREADY_EXISTS
+	}
+
+	data class MemoryCreateResult(
+		val status: MemoryCreateStatus,
+		val memoryId: String = ""
+	)
 }
