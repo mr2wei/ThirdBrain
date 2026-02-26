@@ -23,7 +23,7 @@ public class NPCMemoryCommand {
 
 	public LiteralArgumentBuilder<ServerCommandSource> getCommand() {
 		return literal("memory")
-			.requires(source -> source.hasPermissionLevel(2))
+			.requires(/*? >=1.21.11 {*/ source -> net.minecraft.server.command.CommandManager.MODERATORS_CHECK.allows(source.getPermissions()) /*?} else {*/ source -> source.hasPermissionLevel(2) /*?}*/)
 			.then(literal("create")
 				.then(argument("npcName", StringArgumentType.string())
 						.suggests((context, builder) -> {

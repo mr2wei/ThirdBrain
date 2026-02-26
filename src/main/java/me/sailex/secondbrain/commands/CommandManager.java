@@ -24,9 +24,8 @@ public class CommandManager {
 	public void registerAll() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 			dispatcher.register(literal("secondbrain")
-					.requires(source -> source.hasPermissionLevel(2))
+					.requires(/*? >=1.21.11 {*/ source -> net.minecraft.server.command.CommandManager.MODERATORS_CHECK.allows(source.getPermissions()) /*?} else {*/ source -> source.hasPermissionLevel(2) /*?}*/)
 					.then(new NPCCreateCommand(npcService).getCommand())
-					.then(new NPCUnlockCommand(npcService, configProvider).getCommand())
 					.then(new NPCMemoryCommand(npcService, configProvider).getCommand())
 					.then(new NPCRemoveCommand(npcService, configProvider).getCommand())
 					.then(new Player2ActionCommand(synchronizer).getCommand())

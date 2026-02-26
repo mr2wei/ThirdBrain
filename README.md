@@ -12,21 +12,31 @@ A Fabric mod that brings intelligent NPCs to your minecraft world. ThirdBrain is
 ThirdBrain keeps the same core concept as SecondBrain, but shifts the design toward NPCs that belong to the world itself, not toward a player companion model. The goal is to improve how this system works inside adventure maps and story-driven maps, where NPCs need consistent lore-friendly behavior, predictable interactions, and tighter narrative control.
 
 Recent changes include:
+- Memory fragments
+- Per-NPC conversation range
+- Dedicated configuration screens for memory and zone behavior
+- Refuse prohibited actions (attacking, mining, placing, breaking blocks)
+- Zone-aware behavior injection with priority handling
 
-- Expanded per-NPC context and control
-  - Memory fragments
-  - Per-NPC conversation range (tune interaction scope/retained context per character)
-  - Dedicated configuration screens for memory and zone behavior (clearer setup for complex maps)
-- Tighter LLM instruction + output rules
-  - Enforce world-NPC behavior (brief intro, wait for explicit requests, prefer dialogue/roleplay guidance)
-  - Default to `idle` when no safe action is needed
-  - Refuse prohibited actions (attacking, mining, placing, breaking blocks)
-  - Stricter output format (short plain-text message + a single valid JSON command) to improve reliability and reduce unsafe/off-format responses
-- Runtime/provider + config improvements
-  - Updated OpenAI integration
-  - Zone-aware behavior injection with priority handling
+### How memory fragments work
+- A memory fragment is a persistent instruction or fact tied to one NPC that can be unlocked or locked.
+- Use it for role rules, lore facts, relationships, or restrictions you want the NPC to unlock and keep over time.
+- Creating a fragment with `/secondbrain memory create <npcName> <memoryPrompt>` stores it and enables it for that NPC.
+- Unlocking a fragment with `/secondbrain memory unlock <npcName> <memoryId>` enables an existing memory by id.
+- During chat/behavior, unlocked fragments are injected into that NPC's active context so responses stay consistent.
+- Ideal use cases: 
+   - An NPC that learns over time
+   - NPC that unlocks new information as player progresses through a map
 
-Overall, ThirdBrain prioritizes context persistence, non-destructive actions, narrative usability, and cleaner configuration UX for authored worlds.
+### How zone instructions work
+- Zone instructions are location-based behavior rules for an NPC.
+- You define instruction text for areas in the world, and the NPC applies those instructions while inside those zones.
+- If more than one zone matches, priority handling decides which instruction set takes precedence.
+- This allows the same NPC to behave differently in different places while keeping behavior deterministic.
+
+Example:
+- Within a Library, we might want the NPC to remember things like staying quiet or using text decorations to indicate whispering.
+- Within an NPC's workplace, they might be focused on their job, while outside they could be more social and friendly.
 
 ## What I did not test
 
@@ -34,7 +44,7 @@ Overall, ThirdBrain prioritizes context persistence, non-destructive actions, na
 
 ## Requirements
       
-- **Minecraft Version**: 1.20.1 (the latest version of this mod only supports 1.20.1 currently)
+- **Minecraft Version**: 1.20.10 or 1.21.11 (Create an issue if you need a different version)
 - **Running Ollama server OR Player2 App OR an OpenAi Key**
 
 ## Mod Installation
@@ -55,13 +65,18 @@ Overall, ThirdBrain prioritizes context persistence, non-destructive actions, na
 - Also edit the base configuration there.
 
 
-### ~~Commands (Deprecated)~~
->~~Warning: This command uses default ollama/openai settings!~~
+### Commands
 
-1. **~~Spawn NPCs~~**:
-   - ~~Use the `/secondbrain add <npcname> <openai|ollama>` (currently only ollama is supported) command to create an NPC. (Example: `/secondbrain add sailex428 OLLAMA)~~
-2. **~~Remove NPCs~~**:
-   - ~~Use the `/secondbrain remove <npcname>` command to remove an NPC from the game world.~~
+> Note: players need operator permission to run these server commands.
+
+#### `/secondbrain memory create <npcName> <memoryPrompt>`
+- Create and immediately unlock a memory fragment for an NPC.
+- Example: `/secondbrain memory create Wanderer "Keep an eye out for incoming visitors and greet them warmly."`
+
+#### `/secondbrain memory unlock <npcName> <memoryId>`
+- Unlock an existing memory fragment for an NPC so it can be used during chat/behavior.
+- Example: `/secondbrain memory unlock Wanderer home-mem-01`
+
 
 **Interact with NPCs**:
 - Just write in the chat to interact with the NPC.

@@ -75,7 +75,7 @@ public class LogUtil {
 	private static void log(MutableText formattedMessage) {
 		if (server != null) {
 			server.getPlayerManager().getPlayerList().stream()
-					.filter(player -> player.hasPermissionLevel(2))
+					.filter(player -> /*? >=1.21.11 {*/ net.minecraft.server.command.CommandManager.MODERATORS_CHECK.allows(player.getPermissions()) /*?} else {*/ player.hasPermissionLevel(2) /*?}*/)
 					.forEach(player -> player.sendMessage(formattedMessage, false));
 		} else {
 			LOGGER.error("{}server is null - cant log to ingame chat!", PREFIX.getString());
