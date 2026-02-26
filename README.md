@@ -44,7 +44,7 @@ Example:
 
 ## Requirements
       
-- **Minecraft Version**: 1.20.10 (Create an issue if you need a different version)
+- **Minecraft Version**: 1.21.10 (Create an issue if you need a different version)
 - **Running Ollama server OR Player2 App OR an OpenAi Key**
 
 ## Mod Installation
