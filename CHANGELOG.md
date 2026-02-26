@@ -2,29 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.1.5] - 2025-12-06
-
-### 🚀 Features
-
-- Use llama3.2 as default model
-
 ### 🐛 Bug Fixes
 
-- Query does not returns results error
-- Parsing error using smaller models
 
 ### 💼 Other
 
-- Add mcVersion to display name of gh release
-- Optimizations for small models
+
+## [4.0.1] - 2026-02-25
+
+### 🚀 Features
+
+### 🐛 Bug Fixes
+
+- Fix nearby block cache snapshots to prevent stale/unbounded growth and cross-thread mutation risks
+- Fix conversation persistence to avoid new duplicate rows and restore chronological history order
+- Register NPC death listener once during service initialization and delete config files on delete-by-type
+
+### 💼 Other
+
+- Improve NPC event queue/error handling and normalize config checkbox state updates
 
 ### 📚 Documentation
-
-- Update changelog for version 3.1.4
-- Update changelog for version 3.1.5
 
 ### ⚙️ Miscellaneous Tasks
 
 - Bump version
-
 
