@@ -120,7 +120,6 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
                 .subscribe(config::setLlmCharacter);
         llmInfo.child(llmCharacter);
 
-        drawZoneSpecificBehaviourButton(llmInfo);
         drawSkinSelector(llmInfo);
         if (config.getLlmType() == LLMType.OPENAI) {
             drawOpenAiVoiceSelector(llmInfo);
@@ -145,14 +144,6 @@ public class NPCConfigScreen extends ConfigScreen<NPCConfig> {
         return Components.checkbox(Text.of("Use TTS"))
                 .checked(config.isTTS())
                 .onChanged(listener -> config.setTTS(!config.isTTS()));
-    }
-
-    private void drawZoneSpecificBehaviourButton(FlowLayout llmInfo) {
-        llmInfo.child(Components.label(Text.of(NPCConfig.ZONE_SPECIFIC_BEHAVIOUR)).shadow(true).margins(Insets.top(7)));
-        llmInfo.child(Components.button(
-                Text.of("Open Zones (" + config.getZoneBehaviors().size() + ")"),
-                button -> client.setScreen(new NPCZoneBehaviorScreen(networkManager, config, isEdit, existingConfigs))
-        ).sizing(Sizing.fill(HALF_INPUT_WIDTH), Sizing.content()));
     }
 
     private void drawLLMTypeDropDown(FlowLayout panel) {
