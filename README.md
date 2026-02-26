@@ -50,9 +50,9 @@ Example:
 ## Mod Installation
 
 1. **Download the Mod**:
-   - Get the latest version of the `SecondBrain` mod from the [Modrinth](https://modrinth.com/mod/secondbrain) page.
+   - Get the latest version of the `ThirdBrain` mod from the [Releases](https://github.com/mr2wei/ThirdBrain/releases) page.
 2. **Install the Mod**:
-   - Place `secondbrain.jar` in your `mods` folder on your minecraft fabric server and client.
+   - Place `thirdbrain.jar` in your `mods` folder on your minecraft fabric server and client.
 3. **Launch Minecraft**:
    - Start the Minecraft client and the server, and you're ready!
 
@@ -61,7 +61,7 @@ Example:
 >Note: Player must be an operator to execute the following commands
 
 ### GUI
-- Open the gui with the `/secondbrain` command and create/spawn, despawn/delete or edit the NPCs there.
+- Open the gui with the `/thirdbrain` command and create/spawn, despawn/delete or edit the NPCs there.
 - Also edit the base configuration there.
 
 
@@ -69,13 +69,13 @@ Example:
 
 > Note: players need operator permission to run these server commands.
 
-#### `/secondbrain memory create <npcName> <memoryPrompt>`
+#### `/thirdbrain memory create <npcName> <memoryPrompt>`
 - Create and immediately unlock a memory fragment for an NPC.
-- Example: `/secondbrain memory create Wanderer "Keep an eye out for incoming visitors and greet them warmly."`
+- Example: `/thirdbrain memory create Wanderer "Keep an eye out for incoming visitors and greet them warmly."`
 
-#### `/secondbrain memory unlock <npcName> <memoryId>`
+#### `/thirdbrain memory unlock <npcName> <memoryId>`
 - Unlock an existing memory fragment for an NPC so it can be used during chat/behavior.
-- Example: `/secondbrain memory unlock Wanderer home-mem-01`
+- Example: `/thirdbrain memory unlock Wanderer home-mem-01`
 
 
 **Interact with NPCs**:
@@ -104,7 +104,7 @@ Example:
 ## Usage with Player2 App
 
 >The mod will automatically sync the selected Characters from the player2 App to NPCs in your singleplayer world.
-If you updated a description/name in the player2 App you can sync these changes with the command `/secondbrain player2 SYNC`
+If you updated a description/name in the player2 App you can sync these changes with the command `/thirdbrain player2 SYNC`
 It's not possible to change any configs from the Character with this mod.
 
 **Interact with NPCs**
@@ -121,8 +121,8 @@ It's not possible to change any configs from the Character with this mod.
 
 ## License
 
-This project is licensed under the [LGPL-3.0](https://github.com/sailex428/SecondBrain/blob/main/LICENSE.md)
-## [Disclaimer](https://github.com/sailex428/SecondBrain/blob/main/DISCLAIMER.md)
+This project is licensed under the [LGPL-3.0](https://github.com/mr2wei/ThirdBrain/blob/main/LICENSE.md)
+## [Disclaimer](https://github.com/mr2wei/ThirdBrain/blob/main/DISCLAIMER.md)
 
 ## Credits
 This project utilizes components from the following projects:

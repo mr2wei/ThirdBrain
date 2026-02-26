@@ -33,7 +33,7 @@ public class STTKeybind {
                 "keybinding.tts",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_LEFT_ALT,
-                /*? >=1.21.10 {*/ /*CATEGORY *//*?} else {*/ "SecondBrain" /*?}*/
+                /*? >=1.21.10 {*/ /*CATEGORY *//*?} else {*/ "ThirdBrain" /*?}*/
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean isCurrentlyPressed = keyBinding.isPressed();

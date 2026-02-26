@@ -1,5 +1,5 @@
 {
-  "name": "secondbrain",
+  "name": "thirdbrain",
   "type": "module",
   "scripts": {
     "prepare": "husky",
