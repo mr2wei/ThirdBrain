@@ -5,8 +5,6 @@ A Fabric mod that brings intelligent NPCs to your minecraft world. ThirdBrain is
 
 **This mod works fully serverside. It must also be installed on a client for setup.**
 
-> **State of Development**: (19.10.25) Fixing issues executing NPC tasks, Updating it to 1.21.1 and the latest mc version
-
 ## How ThirdBrain differs from original SecondBrain
 
 ThirdBrain keeps the same core concept as SecondBrain, but shifts the design toward NPCs that belong to the world itself, not toward a player companion model. The goal is to improve how this system works inside adventure maps and story-driven maps, where NPCs need consistent lore-friendly behavior, predictable interactions, and tighter narrative control.
