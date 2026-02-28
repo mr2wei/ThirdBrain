@@ -84,12 +84,9 @@ public class OpenAiClient implements LLMClient {
         } catch (Exception e) {
             Throwable root = e;
             while (root.getCause() != null) root = root.getCause();
-            String rootMessage = root.getMessage();
-            if (rootMessage == null || rootMessage.isBlank() || "ERROR :".equals(rootMessage.trim())) {
-                rootMessage = "Provider returned a non-2xx response with an empty error body. Check base URL, model, and API key.";
-            }
+            String safeRootMessage = "Provider returned an error. Check base URL, model, and API key.";
             throw new LLMServiceException("Could not generate Response for prompt: " + messages.get(messages.size() - 1).getMessage()
-                    + "\nRoot cause: " + root.getClass().getSimpleName() + ": " + rootMessage, e);
+                    + "\nRoot cause: " + root.getClass().getSimpleName() + ": " + safeRootMessage, e);
         }
     }
 
@@ -138,12 +135,9 @@ public class OpenAiClient implements LLMClient {
         } catch (Exception e) {
             Throwable root = e;
             while (root.getCause() != null) root = root.getCause();
-            String rootMessage = root.getMessage();
-            if (rootMessage == null || rootMessage.isBlank()) {
-                rootMessage = "Unknown TTS error";
-            }
+            String safeRootMessage = "TTS provider returned an error.";
             throw new LLMServiceException("Failed to generate OpenAI TTS audio"
-                    + "\nRoot cause: " + root.getClass().getSimpleName() + ": " + rootMessage, e);
+                    + "\nRoot cause: " + root.getClass().getSimpleName() + ": " + safeRootMessage, e);
         }
     }
 

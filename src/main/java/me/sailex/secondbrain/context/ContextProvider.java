@@ -4,6 +4,7 @@ import java.util.*;
 
 import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.model.context.*;
+import me.sailex.secondbrain.util.LogUtil;
 import me.sailex.secondbrain.util.MCDataUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -14,6 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * Generates the context for the LLM requests based on the NPCs world environment.
  */
 public class ContextProvider {
+	private static final long DIAG_RATE_LIMIT_MS = 5000L;
 
 	private final ServerPlayerEntity npcEntity;
 	private final ChunkManager chunkManager;
@@ -34,14 +36,29 @@ public class ContextProvider {
 	 */
 	public WorldContext buildContext() {
 		synchronized (this) {
+			long startNs = System.nanoTime();
+			long stateStartNs = System.nanoTime();
+			StateData state = getNpcState();
+			long stateMs = millisSince(stateStartNs);
+
+			long inventoryStartNs = System.nanoTime();
+			InventoryData inventory = getInventoryState();
+			long inventoryMs = millisSince(inventoryStartNs);
+
+			long entitiesStartNs = System.nanoTime();
+			NearbyEntitiesSnapshot nearbyEntities = getNearbyEntitiesSnapshot();
+			long entitiesMs = millisSince(entitiesStartNs);
+
 			WorldContext context = new WorldContext(
-					getNpcState(),
-					getInventoryState(),
+					state,
+					inventory,
 					chunkManager.getNearbyBlocks(),
-					getNearbyEntities()
+					nearbyEntities.entities()
 			);
 //			chunkManager.getNearbyBlocks().forEach(blockData -> LogUtil.debugInChat(blockData.toString()));
 			this.cachedContext = context;
+			long totalMs = millisSince(startNs);
+			logContextDiagnostics(totalMs, stateMs, inventoryMs, entitiesMs, nearbyEntities.entityCount(), nearbyEntities.topEntitiesSummary());
 			return context;
 		}
 	}
@@ -88,13 +105,24 @@ public class ContextProvider {
 		return translationKey.substring(translationKey.lastIndexOf(".") + 1);
 	}
 
-	private List<EntityData> getNearbyEntities() {
+	private NearbyEntitiesSnapshot getNearbyEntitiesSnapshot() {
 		List<EntityData> nearbyEntities = new ArrayList<>();
 		List<Entity> entities = MCDataUtil.getNearbyEntities(npcEntity);
+		Map<String, Integer> typeCounts = new HashMap<>();
 		entities.forEach(entity ->
-			nearbyEntities.add(new EntityData(entity.getId(), entity.getName().getString(), entity.isPlayer()))
+			{
+				nearbyEntities.add(new EntityData(entity.getId(), entity.getName().getString(), entity.isPlayer()));
+				String typeId = entity.getType().toString();
+				typeCounts.merge(typeId, 1, Integer::sum);
+			}
 		);
-		return nearbyEntities.stream().toList();
+		String topEntities = typeCounts.entrySet().stream()
+				.sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+				.limit(5)
+				.map(entry -> entry.getKey() + "(" + entry.getValue() + ")")
+				.reduce((a, b) -> a + "," + b)
+				.orElse("none");
+		return new NearbyEntitiesSnapshot(nearbyEntities.stream().toList(), entities.size(), topEntities);
 	}
 
 	public ChunkManager getChunkManager() {
@@ -104,4 +132,35 @@ public class ContextProvider {
 	public WorldContext getCachedContext() {
 		return cachedContext;
 	}
+
+	private void logContextDiagnostics(long totalMs, long stateMs, long inventoryMs, long entitiesMs, int entityCount, String topEntitiesSummary) {
+		if (!LogUtil.isVerboseEnabled()) {
+			return;
+		}
+		String npcName = npcEntity.getName().getString();
+		String threadName = Thread.currentThread().getName();
+
+		if (totalMs > 100) {
+			LogUtil.warnRateLimited(
+					"context.build.slow." + npcName,
+					"[SB-DIAG] area=context npc=%s thread=%s metric=context_ms value=%d state_ms=%d inventory_ms=%d entities_ms=%d entity_count=%d nearby_types=%d"
+							.formatted(npcName, threadName, totalMs, stateMs, inventoryMs, entitiesMs, entityCount, chunkManager.getNearbyBlocks().size()),
+					DIAG_RATE_LIMIT_MS
+			);
+		}
+		if (entityCount > 150) {
+			LogUtil.warnRateLimited(
+					"context.entities.high." + npcName,
+					"[SB-DIAG] area=context npc=%s thread=%s metric=entity_count value=%d top_entities=%s"
+							.formatted(npcName, threadName, entityCount, topEntitiesSummary),
+					DIAG_RATE_LIMIT_MS
+			);
+		}
+	}
+
+	private long millisSince(long startNs) {
+		return (System.nanoTime() - startNs) / 1_000_000L;
+	}
+
+	private record NearbyEntitiesSnapshot(List<EntityData> entities, int entityCount, String topEntitiesSummary) {}
 }

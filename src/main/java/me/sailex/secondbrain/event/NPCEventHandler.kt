@@ -15,6 +15,7 @@ import me.sailex.secondbrain.llm.roles.Player2ChatRole
 import me.sailex.secondbrain.util.LogUtil
 import me.sailex.secondbrain.util.PromptFormatter
 import net.minecraft.util.math.BlockPos
+import java.util.ArrayDeque
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ThreadPoolExecutor
@@ -38,6 +39,9 @@ class NPCEventHandler(
         ArrayBlockingQueue(10),
         ThreadPoolExecutor.DiscardPolicy()
     )
+    private val commandErrorPromptTimestamps = ArrayDeque<Long>()
+    private val diagRateLimitMs = 5000L
+    private val commandLoopWindowMs = 10_000L
 
     /**
      * Processes an event asynchronously by allowing call actions from llm using the specified prompt.
@@ -46,7 +50,12 @@ class NPCEventHandler(
      * @param prompt prompt of a user or system e.g. chatmessage of a player
      */
     override fun onEvent(prompt: String) {
+        val queueDepthBeforeEnqueue = executorService.queue.size
+        logQueueDepthDiagnostic(queueDepthBeforeEnqueue)
+        trackCommandErrorLoopPressure(prompt)
+
         CompletableFuture.runAsync({
+            val eventStartNs = System.nanoTime()
             LogUtil.info("onEvent: $prompt")
 
             val worldContext = contextProvider.buildContext()
@@ -60,12 +69,19 @@ class NPCEventHandler(
                 controller.commandExecutor.allCommands(),
                 config.llmType
             )
+            val llmStartNs = System.nanoTime()
             val response = llmClient.chat(history.buildMessagesForApi(systemPrompt))
+            val llmCallMs = millisSince(llmStartNs)
+            logLlmLatencyDiagnostic(llmCallMs)
             history.add(response)
 
             val parsedMessage = parse(response.message)
+            val commandDispatchStartNs = System.nanoTime()
             val succeeded = execute(parsedMessage.command)
+            val commandDispatchMs = millisSince(commandDispatchStartNs)
+            logCommandDispatchLatencyDiagnostic(commandDispatchMs)
             if (!succeeded) {
+                logEventTotalLatencyDiagnostic(millisSince(eventStartNs), queueDepthBeforeEnqueue, llmCallMs, commandDispatchMs)
                 return@runAsync
             }
 
@@ -87,6 +103,7 @@ class NPCEventHandler(
                     else -> {}
                 }
             }
+            logEventTotalLatencyDiagnostic(millisSince(eventStartNs), queueDepthBeforeEnqueue, llmCallMs, commandDispatchMs)
         }, executorService)
             .exceptionally {
                 LogUtil.debugInChat("Could not generate a response: " + buildErrorMessage(it))
@@ -173,6 +190,75 @@ class NPCEventHandler(
             Additional zone instructions (zone: ${matchingZone.name}, priority: ${matchingZone.priority}):
             ${matchingZone.instructions}
         """.trimIndent()
+    }
+
+    private fun trackCommandErrorLoopPressure(prompt: String) {
+        if (!LogUtil.isVerboseEnabled()) return
+        val trimmedPrompt = prompt.trimStart()
+        if (!trimmedPrompt.startsWith("Command ") || !trimmedPrompt.contains(" failed. Error content:")) return
+
+        val now = System.currentTimeMillis()
+        val failuresInWindow: Int
+        synchronized(commandErrorPromptTimestamps) {
+            while (true) {
+                val oldest = commandErrorPromptTimestamps.peekFirst() ?: break
+                if (now - oldest > commandLoopWindowMs) {
+                    commandErrorPromptTimestamps.removeFirst()
+                } else {
+                    break
+                }
+            }
+            commandErrorPromptTimestamps.addLast(now)
+            failuresInWindow = commandErrorPromptTimestamps.size
+        }
+
+        if (failuresInWindow > 3) {
+            LogUtil.warnRateLimited(
+                "event.command_loop_pressure.${config.npcName}",
+                "[SB-DIAG] area=command-loop npc=${config.npcName} thread=${Thread.currentThread().name} metric=failed_command_retries_10s value=$failuresInWindow",
+                diagRateLimitMs
+            )
+        }
+    }
+
+    private fun logQueueDepthDiagnostic(queueDepthBeforeEnqueue: Int) {
+        if (!LogUtil.isVerboseEnabled() || queueDepthBeforeEnqueue < 8) return
+        LogUtil.warnRateLimited(
+            "event.queue_depth.${config.npcName}",
+            "[SB-DIAG] area=event npc=${config.npcName} thread=${Thread.currentThread().name} metric=queue_depth value=$queueDepthBeforeEnqueue",
+            diagRateLimitMs
+        )
+    }
+
+    private fun logLlmLatencyDiagnostic(llmCallMs: Long) {
+        if (!LogUtil.isVerboseEnabled() || llmCallMs <= 1200) return
+        LogUtil.warnRateLimited(
+            "event.llm_latency.${config.npcName}",
+            "[SB-DIAG] area=event npc=${config.npcName} thread=${Thread.currentThread().name} metric=llm_ms value=$llmCallMs",
+            diagRateLimitMs
+        )
+    }
+
+    private fun logCommandDispatchLatencyDiagnostic(commandDispatchMs: Long) {
+        if (!LogUtil.isVerboseEnabled() || commandDispatchMs <= 500) return
+        LogUtil.warnRateLimited(
+            "event.command_dispatch.${config.npcName}",
+            "[SB-DIAG] area=event npc=${config.npcName} thread=${Thread.currentThread().name} metric=command_dispatch_ms value=$commandDispatchMs",
+            diagRateLimitMs
+        )
+    }
+
+    private fun logEventTotalLatencyDiagnostic(totalMs: Long, queueDepthBeforeEnqueue: Int, llmCallMs: Long, commandDispatchMs: Long) {
+        if (!LogUtil.isVerboseEnabled() || totalMs <= 1500) return
+        LogUtil.warnRateLimited(
+            "event.total_latency.${config.npcName}",
+            "[SB-DIAG] area=event npc=${config.npcName} thread=${Thread.currentThread().name} metric=event_total_ms value=$totalMs queue_depth_before=$queueDepthBeforeEnqueue llm_ms=$llmCallMs command_dispatch_ms=$commandDispatchMs",
+            diagRateLimitMs
+        )
+    }
+
+    private fun millisSince(startNs: Long): Long {
+        return (System.nanoTime() - startNs) / 1_000_000L
     }
 
 }
