@@ -5,6 +5,7 @@ import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.model.context.BlockData;
 import me.sailex.secondbrain.util.LogUtil;
 import net.minecraft.block.BlockState;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -55,16 +56,27 @@ public class ChunkManager {
 
     private void scheduleRefreshBlocks(int chunkExpiryTime) {
         threadPool.scheduleAtFixedRate(() -> {
-            long startNs = System.nanoTime();
-            int loadedChunksCount;
-            int scannedColumnsCount;
-            synchronized (this) {
-                loadedChunksCount = updateAllBlocks();
-                scannedColumnsCount = scannedColumnsCountLastRefresh;
-                updateNearbyBlocks();
+            MinecraftServer server = EntityVer.getWorld(npcEntity).getServer();
+            if (server == null) {
+                LogUtil.error("Cannot refresh NPC chunks without a server for " + npcEntity.getName().getString());
+                return;
             }
-            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
-            logChunkDiagnostics(elapsedMs, loadedChunksCount, scannedColumnsCount);
+            server.execute(() -> {
+                try {
+                    long startNs = System.nanoTime();
+                    int loadedChunksCount;
+                    int scannedColumnsCount;
+                    synchronized (this) {
+                        loadedChunksCount = updateAllBlocks();
+                        scannedColumnsCount = scannedColumnsCountLastRefresh;
+                        updateNearbyBlocks();
+                    }
+                    long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+                    logChunkDiagnostics(elapsedMs, loadedChunksCount, scannedColumnsCount);
+                } catch (Throwable t) {
+                    LogUtil.error("Failed to refresh NPC chunk context for " + npcEntity.getName().getString(), t);
+                }
+            });
         }, 0, chunkExpiryTime, TimeUnit.SECONDS);
     }
 

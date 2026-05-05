@@ -37,7 +37,7 @@ class STTListener(npcs: Map<UUID, NPC>) : AEventListener(npcs) {
     private fun callEventForPlayer2Npcs(prompt: String) {
         npcs.forEach {
             if (it.value.llmClient is Player2APIClient) {
-                it.value.eventHandler.onEvent(prompt)
+                it.value.eventHandler.onEvent(prompt, null)
             }
         }
     }

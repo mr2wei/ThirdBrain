@@ -23,7 +23,7 @@ class ChatMessageListener(
                         sender.name.string ?: "Server Console",
                         message.content.string,
                     )
-                npcEntry.value.eventHandler.onEvent(chatMessage)
+                npcEntry.value.eventHandler.onEvent(chatMessage, sender)
             }
         }
     }

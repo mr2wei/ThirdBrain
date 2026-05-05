@@ -50,6 +50,7 @@ public class NetworkHandler {
         registerUpdateNpcConfig();
         registerAddNpc();
         registerDeleteNpc();
+        registerClearConversationHistory();
         registerStartStopSTT();
 
         CHANNEL.registerClientboundDeferred(ConfigPacket.class);
@@ -110,7 +111,7 @@ public class NetworkHandler {
         CHANNEL.registerServerbound(CreateNpcPacket.class, (createNpcPacket, serverAccess) -> {
             if (authorizer.isAuthorized(serverAccess)) {
                 npcService.createNpc(createNpcPacket.npcConfig(), serverAccess.runtime(),
-                        serverAccess.player().getBlockPos(), serverAccess.player());
+                        serverAccess.player().getBlockPos(), serverAccess.player(), createNpcPacket.runInitialPrompt());
             }
         });
     }
@@ -131,6 +132,15 @@ public class NetworkHandler {
                     LogUtil.error("Failed to process npc delete/despawn packet.", e);
                     LogUtil.errorInChat("Failed to despawn npc due to an internal error. Check logs.");
                 }
+            }
+        });
+    }
+
+    private void registerClearConversationHistory() {
+        CHANNEL.registerServerbound(ClearConversationHistoryPacket.class, (packet, serverAccess) -> {
+            if (authorizer.isAuthorized(serverAccess)) {
+                npcService.clearAllConversationHistory(packet.clearActiveNpcs());
+                LogUtil.debugInChat("NPC conversation cleared");
             }
         });
     }
@@ -177,6 +187,11 @@ public class NetworkHandler {
                 buf -> ((EndecBuffer) buf).read(UpdateBaseConfigPacket.ENDEC)
         );
         PacketBufSerializer.register(
+                ClearConversationHistoryPacket.class,
+                (buf, packet) -> ((EndecBuffer) buf).write(ClearConversationHistoryPacket.ENDEC, packet),
+                buf -> ((EndecBuffer) buf).read(ClearConversationHistoryPacket.ENDEC)
+        );
+        PacketBufSerializer.register(
                 STTPacket.class,
                 (buf, packet) -> ((EndecBuffer) buf).write(STTPacket.ENDEC, packet),
                 buf -> ((EndecBuffer) buf).read(STTPacket.ENDEC)
@@ -195,6 +210,7 @@ public class NetworkHandler {
             builder.register(DeleteNpcPacket.ENDEC, DeleteNpcPacket.class);
             builder.register(UpdateNpcConfigPacket.ENDEC, UpdateNpcConfigPacket.class);
             builder.register(UpdateBaseConfigPacket.ENDEC, UpdateBaseConfigPacket.class);
+            builder.register(ClearConversationHistoryPacket.ENDEC, ClearConversationHistoryPacket.class);
             builder.register(STTPacket.ENDEC, STTPacket.class);
         });
         *///?}

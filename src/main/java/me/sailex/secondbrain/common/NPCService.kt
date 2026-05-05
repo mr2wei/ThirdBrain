@@ -61,6 +61,10 @@ class NPCService(
     }
 
     fun createNpc(newConfig: NPCConfig, server: MinecraftServer, spawnPos: BlockPos?, owner: PlayerEntity?) {
+        createNpc(newConfig, server, spawnPos, owner, true)
+    }
+
+    fun createNpc(newConfig: NPCConfig, server: MinecraftServer, spawnPos: BlockPos?, owner: PlayerEntity?, runInitialPrompt: Boolean) {
         CompletableFuture.runAsync({
             val name = newConfig.npcName
             checkLimit()
@@ -84,7 +88,9 @@ class NPCService(
                     npc.controller.owner = owner
                     uuidToNpc[config.uuid] = npc
                     LogUtil.infoInChat(("Added NPC with name: $name"))
-                    npc.eventHandler.onEvent(Instructions.INITIAL_PROMPT)
+                    if (runInitialPrompt) {
+                        npc.eventHandler.onEvent(Instructions.INITIAL_PROMPT, null)
+                    }
                 } catch (e: Exception) {
                     LogUtil.errorInChat("Failed to create NPC '$name' after spawn: ${e.message}")
                     LogUtil.error(e)
@@ -233,6 +239,14 @@ class NPCService(
         configProvider.deleteByType(llmType).forEach { uuid ->
             resourceProvider.removeLoadedConversation(uuid)
             resourceProvider.conversationRepository.deleteByUuid(uuid)
+        }
+    }
+
+    fun clearAllConversationHistory(clearActiveNpcs: Boolean) {
+        resourceProvider.clearLoadedConversations()
+        resourceProvider.conversationRepository.deleteAll()
+        if (clearActiveNpcs) {
+            uuidToNpc.values.forEach { npc -> npc.history.clear() }
         }
     }
 

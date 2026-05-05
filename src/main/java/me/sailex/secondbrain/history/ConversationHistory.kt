@@ -28,4 +28,9 @@ class ConversationHistory(
     fun getLastMessage(): String {
         return latestConversations.lastOrNull()?.message ?: ""
     }
+
+    @Synchronized
+    fun clear() {
+        latestConversations.clear()
+    }
 }

@@ -2,6 +2,7 @@ package me.sailex.secondbrain.context;
 
 import java.util.*;
 
+import me.sailex.altoclef.multiversion.EntityVer;
 import me.sailex.secondbrain.config.BaseConfig;
 import me.sailex.secondbrain.model.context.*;
 import me.sailex.secondbrain.util.LogUtil;
@@ -9,7 +10,10 @@ import me.sailex.secondbrain.util.MCDataUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Generates the context for the LLM requests based on the NPCs world environment.
@@ -28,13 +32,30 @@ public class ContextProvider {
 	public ContextProvider(ServerPlayerEntity npcEntity, BaseConfig config, int contextRangeInBlocks) {
 		this.npcEntity = npcEntity;
 		this.chunkManager = new ChunkManager(npcEntity, Math.max(1, contextRangeInBlocks), config.getContextVerticalScanRange(), config.getChunkExpiryTime());
-		buildContext();
+		buildContextAsync();
 	}
 
 	/**
-	 * Builds a context of the NPC entity world environment.
+	 * Builds a context of the NPC entity world environment on the server thread.
 	 */
-	public WorldContext buildContext() {
+	public CompletableFuture<WorldContext> buildContextAsync() {
+		MinecraftServer server = EntityVer.getWorld(npcEntity).getServer();
+		if (server == null) {
+			return CompletableFuture.failedFuture(new IllegalStateException("Cannot build NPC context without a server"));
+		}
+
+		CompletableFuture<WorldContext> future = new CompletableFuture<>();
+		server.execute(() -> {
+			try {
+				future.complete(buildContextSnapshot());
+			} catch (Throwable t) {
+				future.completeExceptionally(t);
+			}
+		});
+		return future;
+	}
+
+	private WorldContext buildContextSnapshot() {
 		synchronized (this) {
 			long startNs = System.nanoTime();
 			long stateStartNs = System.nanoTime();

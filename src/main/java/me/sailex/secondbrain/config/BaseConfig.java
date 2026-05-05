@@ -16,6 +16,7 @@ public class BaseConfig implements Configurable {
     private int contextVerticalScanRange = 8;
     private int chunkExpiryTime = 60;
     private boolean verbose = false;
+    private boolean privateChat = false;
     private String ollamaUrl = DEFAULT_OLLAMA_URL;
     private String openaiBaseUrl = "https://api.openai.com/v1";
     private String openaiApiKey = "";
@@ -60,6 +61,14 @@ public class BaseConfig implements Configurable {
 
     public void setVerbose(boolean verbose) {
         this.verbose = verbose;
+    }
+
+    public boolean isPrivateChat() {
+        return privateChat;
+    }
+
+    public void setPrivateChat(boolean privateChat) {
+        this.privateChat = privateChat;
     }
 
     public String getOllamaUrl() {
@@ -113,6 +122,7 @@ public class BaseConfig implements Configurable {
             Endec.INT.fieldOf("contextVerticalScanRange", BaseConfig::getContextVerticalScanRange),
             Endec.INT.fieldOf("chunkExpiryTime", BaseConfig::getChunkExpiryTime),
             Endec.BOOLEAN.fieldOf("verbose", BaseConfig::isVerbose),
+            Endec.BOOLEAN.fieldOf("privateChat", BaseConfig::isPrivateChat),
             Endec.STRING.fieldOf("ollamaUrl", BaseConfig::getOllamaUrl),
             Endec.STRING.fieldOf("openaiBaseUrl", BaseConfig::getOpenaiBaseUrl),
             Endec.STRING.fieldOf("openaiApiKey", BaseConfig::getOpenaiApiKey),
@@ -133,7 +143,8 @@ public class BaseConfig implements Configurable {
                 ",openaiBaseUrl=" + openaiBaseUrl +
                 ",openaiApiKey=***" +
                 ",openwebuiBaseUrl=" + openwebuiBaseUrl +
-                ",openwebuiApiKey=***}";
+                ",openwebuiApiKey=***" +
+                ",privateChat=" + privateChat + "}";
     }
 
     public static BaseConfig deepCopy(BaseConfig config) {
@@ -148,6 +159,7 @@ public class BaseConfig implements Configurable {
         copied.setOpenaiApiKey(config.getOpenaiApiKey());
         copied.setOpenwebuiBaseUrl(config.getOpenwebuiBaseUrl());
         copied.setOpenwebuiApiKey(config.getOpenwebuiApiKey());
+        copied.setPrivateChat(config.isPrivateChat());
         return copied;
     }
 

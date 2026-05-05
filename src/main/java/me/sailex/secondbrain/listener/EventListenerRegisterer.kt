@@ -15,7 +15,8 @@ class EventListenerRegisterer(
     fun register() {
         listOf<IEventListener>(
             ChatMessageListener(npcs),
-            STTListener(npcs)
+            STTListener(npcs),
+            NPCLookAtPlayerListener(npcs)
         ).forEach { listener -> listener.register() }
     }
 }

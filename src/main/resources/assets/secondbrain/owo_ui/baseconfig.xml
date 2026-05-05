@@ -19,7 +19,7 @@
                                                     </label>
                                                     <discrete-slider id="llmTimeout" min="1" max="60">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fill">7</vertical>
                                                         </sizing>
                                                     </discrete-slider>
@@ -34,7 +34,7 @@
                                                     </label>
                                                     <discrete-slider id="chunkRadius" min="1" max="7">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fill">7</vertical>
                                                         </sizing>
                                                     </discrete-slider>
@@ -49,7 +49,7 @@
                                                     </label>
                                                     <discrete-slider id="verticalScanRange" min="4" max="16">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fill">7</vertical>
                                                         </sizing>
                                                     </discrete-slider>
@@ -64,7 +64,7 @@
                                                     </label>
                                                     <discrete-slider id="cacheExpiryTime" min="20" max="120">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fill">7</vertical>
                                                         </sizing>
                                                     </discrete-slider>
@@ -87,12 +87,26 @@
 
                                             <flow-layout direction="vertical">
                                                 <children>
+                                                    <label id="privateChat-label">
+                                                        <shadow>true</shadow>
+                                                    </label>
+                                                    <checkbox id="privateChat">
+                                                        <sizing>
+                                                            <horizontal method="fill">25</horizontal>
+                                                            <vertical method="fill">7</vertical>
+                                                        </sizing>
+                                                    </checkbox>
+                                                </children>
+                                            </flow-layout>
+
+                                            <flow-layout direction="vertical">
+                                                <children>
                                                     <label id="ollamaUrl-label">
                                                         <shadow>true</shadow>
                                                     </label>
                                                     <text-area id="ollamaUrl">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fixed">20</vertical>
                                                         </sizing>
                                                     </text-area>
@@ -106,7 +120,7 @@
                                                     </label>
                                                     <text-area id="openaiBaseUrl">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fixed">20</vertical>
                                                         </sizing>
                                                     </text-area>
@@ -120,7 +134,7 @@
                                                     </label>
                                                     <text-area id="openaiApiKey">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fixed">20</vertical>
                                                         </sizing>
                                                     </text-area>
@@ -134,7 +148,7 @@
                                                     </label>
                                                     <text-area id="openwebuiBaseUrl">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fixed">20</vertical>
                                                         </sizing>
                                                     </text-area>
@@ -148,7 +162,7 @@
                                                     </label>
                                                     <text-area id="openwebuiApiKey">
                                                         <sizing>
-                                                            <horizontal method="fill">25</horizontal>
+                                                            <horizontal method="fill">100</horizontal>
                                                             <vertical method="fixed">20</vertical>
                                                         </sizing>
                                                     </text-area>
@@ -157,15 +171,22 @@
                                         </children>
 
                                         <gap>9</gap>
+                                        <sizing>
+                                            <horizontal method="fill">100</horizontal>
+                                        </sizing>
                                     </flow-layout>
 
                                     <sizing>
+                                        <horizontal method="fill">100</horizontal>
                                         <vertical method="fixed">180</vertical>
                                     </sizing>
                                 </scroll>
 
                                 <flow-layout direction="horizontal">
                                     <children>
+                                        <button id="clear_history">
+                                            <text>Clear All Conversation History</text>
+                                        </button>
                                         <button id="cancel">
                                             <text>Cancel</text>
                                         </button>
@@ -184,6 +205,9 @@
                             </margins>
 
                             <gap>7</gap>
+                            <sizing>
+                                <horizontal method="fill">100</horizontal>
+                            </sizing>
 
                             <horizontal-alignment>left</horizontal-alignment>
                             <vertical-alignment>center</vertical-alignment>
@@ -198,6 +222,9 @@
                     <surface>
                         <panel dark="true"/>
                     </surface>
+                    <sizing>
+                        <horizontal method="fixed">300</horizontal>
+                    </sizing>
                 </flow-layout>
             </children>
 

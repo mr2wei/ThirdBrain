@@ -8,6 +8,7 @@ import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
 import me.sailex.secondbrain.client.networking.ClientNetworkManager;
 import me.sailex.secondbrain.config.BaseConfig;
+import me.sailex.secondbrain.networking.packet.ClearConversationHistoryPacket;
 import me.sailex.secondbrain.networking.packet.UpdateBaseConfigPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -22,6 +23,7 @@ public class BaseConfigScreen extends ConfigScreen<BaseConfig> {
     private static final String CONTEXT_VERTICAL_RANGE_LABEL = "Vertical Scan Range";
     private static final String CHUNK_EXPIRY_TIME_LABEL = "Chunk Expiry Time";
     private static final String VERBOSE_LABEL = "Debug Mode";
+    private static final String PRIVATE_CHAT_LABEL = "Private NPC Chat";
     private static final String OLLAMA_URL_LABEL = "Ollama URL";
     private static final String OPENAI_BASE_URL_LABEL = "OpenAI Compatible URL";
     private static final String OPENAI_API_KEY_LABEL = "OpenAI API Key";
@@ -69,6 +71,11 @@ public class BaseConfigScreen extends ConfigScreen<BaseConfig> {
                 .checked(config.isVerbose())
                 .onChanged(config::setVerbose);
 
+        panel.childById(LabelComponent.class, "privateChat-label").text(Text.of(PRIVATE_CHAT_LABEL));
+        panel.childById(CheckboxComponent.class, "privateChat")
+                .checked(config.isPrivateChat())
+                .onChanged(config::setPrivateChat);
+
         panel.childById(LabelComponent.class, "ollamaUrl-label").text(Text.of(OLLAMA_URL_LABEL));
         panel.childById(TextAreaComponent.class, "ollamaUrl")
                 .text(config.getOllamaUrl())
@@ -103,6 +110,10 @@ public class BaseConfigScreen extends ConfigScreen<BaseConfig> {
             networkManager.sendPacket(new UpdateBaseConfigPacket(config));
             close();
         });
+
+        panel.childById(ButtonComponent.class, "clear_history").onPress(button ->
+                networkManager.sendPacket(new ClearConversationHistoryPacket(true))
+        );
 
         panel.childById(ButtonComponent.class, "cancel").onPress(button -> close());
     }

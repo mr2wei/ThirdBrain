@@ -56,6 +56,28 @@ public class SecondBrainScreen extends BaseUIModelScreen<FlowLayout> {
         rootComponent.childById(ButtonComponent.class, "edit_base").onPress(button ->
             client.setScreen(new BaseConfigScreen(networkManager, baseConfig, true))
         );
+
+        rootComponent.childById(ButtonComponent.class, "spawn_all").onPress(button ->
+            spawnAllInactiveNpcs()
+        );
+
+        rootComponent.childById(ButtonComponent.class, "despawn_all").onPress(button ->
+            despawnAllActiveNpcs()
+        );
+    }
+
+    private void spawnAllInactiveNpcs() {
+        npcConfig.stream()
+                .filter(config -> !config.isActive())
+                .forEach(config -> networkManager.sendPacket(new CreateNpcPacket(config, false)));
+        close();
+    }
+
+    private void despawnAllActiveNpcs() {
+        npcConfig.stream()
+                .filter(NPCConfig::isActive)
+                .forEach(config -> networkManager.sendPacket(new DeleteNpcPacket(config.getUuid().toString(), false)));
+        close();
     }
 
     private void addNpcComponent(FlowLayout panelComponent, NPCConfig config) {

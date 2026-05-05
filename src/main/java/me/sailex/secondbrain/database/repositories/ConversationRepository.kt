@@ -83,4 +83,8 @@ class ConversationRepository(
             statement.close()
         }
     }
+
+    fun deleteAll() {
+        sqliteClient.update("DELETE FROM conversations")
+    }
 }

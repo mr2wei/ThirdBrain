@@ -51,6 +51,10 @@ class ResourceProvider(
         loadedConversations.remove(uuid)
     }
 
+    fun clearLoadedConversations() {
+        loadedConversations.clear()
+    }
+
     /**
      * Saves recipes and conversations to local db. (called on server stop)
      *

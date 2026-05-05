@@ -3,6 +3,7 @@ package me.sailex.secondbrain.event
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParseException
 import me.sailex.altoclef.AltoClefController
+import me.sailex.secondbrain.config.ConfigProvider
 import me.sailex.secondbrain.config.NPCConfig
 import me.sailex.secondbrain.constant.Instructions
 import me.sailex.secondbrain.context.ContextProvider
@@ -15,6 +16,8 @@ import me.sailex.secondbrain.llm.player2.Player2APIClient
 import me.sailex.secondbrain.llm.roles.Player2ChatRole
 import me.sailex.secondbrain.util.LogUtil
 import me.sailex.secondbrain.util.PromptFormatter
+import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import java.util.ArrayDeque
 import java.util.LinkedHashSet
@@ -22,6 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class NPCEventHandler(
     private val llmClient: LLMClient,
@@ -29,6 +33,7 @@ class NPCEventHandler(
     private val contextProvider: ContextProvider,
     private val controller: AltoClefController,
     private val config: NPCConfig,
+    private val configProvider: ConfigProvider,
 ): EventHandler {
     companion object {
         private val gson = GsonBuilder()
@@ -45,14 +50,16 @@ class NPCEventHandler(
     private val diagRateLimitMs = 5000L
     private val commandLoopWindowMs = 10_000L
     private val maxCommandErrorPromptsPerWindow = 3
+    private val commandRunning = AtomicBoolean(false)
 
     /**
      * Processes an event asynchronously by allowing call actions from llm using the specified prompt.
      * Saves the prompt and responses in conversation history.
      *
      * @param prompt prompt of a user or system e.g. chatmessage of a player
+     * @param sender player that triggered this event, if there is one
      */
-    override fun onEvent(prompt: String) {
+    override fun onEvent(prompt: String, sender: ServerPlayerEntity?) {
         val queueDepthBeforeEnqueue = executorService.queue.size
         logQueueDepthDiagnostic(queueDepthBeforeEnqueue)
         if (shouldDropCommandErrorPrompt(prompt)) {
@@ -70,7 +77,7 @@ class NPCEventHandler(
                 try {
                     LogUtil.info("onEvent: $prompt")
 
-                    val worldContext = contextProvider.buildContext()
+                    val worldContext = contextProvider.buildContextAsync().join()
                     val activeZone = resolveActiveZoneBehavior(worldContext.state().position())
                     val zoneAwarePrompt = applyZoneSpecificBehaviour(prompt, activeZone)
                     val formattedPrompt: String = PromptFormatter.format(zoneAwarePrompt, worldContext)
@@ -87,6 +94,15 @@ class NPCEventHandler(
                     } else {
                         emptyList()
                     }
+                    sender?.sendMessage(
+                        Text.literal("${config.npcName} is thinking...")
+                            .styled { style ->
+                                style
+                                    .withItalic(true)
+                                    .withColor(0xD1D1D1)
+                            },
+                        false
+                    )
                     val llmStartNs = System.nanoTime()
                     val response = llmClient.chat(history.buildMessagesForApi(systemPrompt), collectionIds)
                     val llmCallMs = millisSince(llmStartNs)
@@ -102,7 +118,11 @@ class NPCEventHandler(
                     //prevent printing multiple times the same when llm is running in command syntax errors
                     if (parsedMessage.message != history.getLastMessage()) {
                         // Always send text chat; TTS is additional output when enabled.
-                        controller.controllerExtras.chat(parsedMessage.message)
+                        if (configProvider.baseConfig.isPrivateChat && sender != null) {
+                            sender.sendMessage(Text.literal("[${config.npcName}] ${parsedMessage.message}"), false)
+                        } else {
+                            controller.controllerExtras.chat(parsedMessage.message)
+                        }
                         if (!config.isTTS) return@task
 
                         when (llmClient) {
@@ -136,6 +156,10 @@ class NPCEventHandler(
         return executorService.queue.isEmpty()
     }
 
+    override fun isCommandRunning(): Boolean {
+        return commandRunning.get()
+    }
+
     //TODO: refactor this into own class
     private fun parse(content: String): CommandMessage {
         return try {
@@ -166,12 +190,15 @@ class NPCEventHandler(
         } else {
             cmdExecutor.commandPrefix + safeCommand
         }
+        commandRunning.set(true)
         cmdExecutor.execute(commandWithPrefix, {
+            commandRunning.set(false)
 //            if (queueIsEmpty()) {
 //                //this.onEvent(Instructions.COMMAND_FINISHED_PROMPT.format(commandWithPrefix))
 //            }
         }, {
-            this.onEvent(Instructions.COMMAND_ERROR_PROMPT.format(commandWithPrefix, it.message))
+            commandRunning.set(false)
+            this.onEvent(Instructions.COMMAND_ERROR_PROMPT.format(commandWithPrefix, it.message), null)
             LogUtil.error("Error executing command: $commandWithPrefix", it)
         })
     }
