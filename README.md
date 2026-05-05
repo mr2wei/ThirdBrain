@@ -10,11 +10,13 @@ A Fabric mod that brings intelligent NPCs to your minecraft world. ThirdBrain is
 ThirdBrain keeps the same core concept as SecondBrain, but shifts the design toward NPCs that belong to the world itself, not toward a player companion model. The goal is to improve how this system works inside adventure maps and story-driven maps, where NPCs need consistent lore-friendly behavior, predictable interactions, and tighter narrative control.
 
 Recent changes include:
-- Memory fragments
+- Memory fragments (with optional OpenWebUI knowledge base collection support)
 - Per-NPC conversation range
 - Dedicated configuration screens for memory and zone behavior
 - Refuse prohibited actions (attacking, mining, placing, breaking blocks)
-- Zone-aware behavior injection with priority handling
+- Zone-aware behavior injection with priority handling (with optional OpenWebUI knowledge base collection support)
+- OpenWebUI as a supported LLM provider with RAG via knowledge base collections
+- Global private chat toggle — NPC responses can be sent only to the triggering player
 
 ### How memory fragments work
 - A memory fragment is a persistent instruction or fact tied to one NPC that can be unlocked or locked.
@@ -138,6 +140,36 @@ This project utilizes components from the following projects:
 
 Thank you to the developers of these projects for their amazing work!
 
+## Building
+
+This project uses [Stonecutter](https://github.com/stonecutter-versioning/stonecutter) for multi-version support. Each Minecraft version is built as a separate subproject.
+
+### Prerequisites
+
+- **Java 21** — required for Minecraft 1.21.x versions
+- **Java 17** — required for Minecraft 1.20.1
+- No separate Gradle installation needed — use the included `./gradlew` wrapper
+
+### Supported versions
+
+`1.20.1`, `1.21.1`, `1.21.8`, `1.21.10`, `1.21.11`
+
+### Build
+
+Replace `<version>` with any supported version listed above.
+
+```bash
+./gradlew "<version>:build"
+```
+
+Output jar is in `versions/<version>/build/libs/`.
+
+### Run client (for development/testing)
+
+```bash
+./gradlew "<version>:runClient"
+```
+
 ## Author admissions
 - I highkey vibe coded all my changes sorry
-- shoutout codex 5.3
+- shoutout codex 5.3 and sonnet 4.6
